@@ -3,6 +3,7 @@
 import { ReactNode } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useAuth } from "@/src/context/AuthContext"
 import { Home, Send, BarChart3, PiggyBank, User } from "lucide-react"
 
 const tabs = [
@@ -15,6 +16,28 @@ const tabs = [
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname()
+  const { isInitializing, isAuthenticated } = useAuth()
+
+  // Show loading state during auth hydration
+  if (isInitializing) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-bg">
+        <div className="flex flex-col items-center gap-3">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+          <p className="text-text-2 text-sm">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Redirect should happen via middleware, but show fallback message
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-bg">
+        <p className="text-text-2">Redirecting to login...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-bg">

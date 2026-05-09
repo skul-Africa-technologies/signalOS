@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import UpdateNotification from "./update-notification";
+import { AuthProvider } from "@/src/context/AuthContext";
+import { Analytics } from "@vercel/analytics/next"
+
+
 
 export const metadata: Metadata = {
   title: "Signal OS",
@@ -12,6 +16,9 @@ export const metadata: Metadata = {
   },
 };
 
+
+
+
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -19,6 +26,9 @@ export const viewport: Viewport = {
   userScalable: false,
   themeColor: "#111111",
 };
+
+
+
 
 export default function RootLayout({
   children,
@@ -29,8 +39,11 @@ export default function RootLayout({
     <html lang="en" className="h-full">
       <head />
       <body className="min-h-full bg-bg text-text-1 font-sans antialiased">
-        <UpdateNotification />
-        {children}
+        <AuthProvider>
+          <UpdateNotification />
+          {children}
+        </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );

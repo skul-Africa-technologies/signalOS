@@ -15,6 +15,8 @@ export default function LandingPage() {
   const [canInstall, setCanInstall] = useState(false)
   const [mounted, setMounted] = useState(false)
 
+
+
   // Check localStorage directly to avoid hydration mismatch
   useEffect(() => {
     setMounted(true)
@@ -24,13 +26,15 @@ export default function LandingPage() {
       if (stored) {
         const data = JSON.parse(stored)
         if (data?.state?.completed) {
-          router.replace("/app/home")
+          // Use window.location for redirect to avoid router initialization issues
+          window.location.href = "/app/home"
         }
       }
     } catch (e) {
       // Ignore parse errors
     }
-  }, [router])
+  }, [])
+  
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -42,6 +46,8 @@ export default function LandingPage() {
     return () => window.removeEventListener("beforeinstallprompt", handler)
   }, [])
 
+
+
   const handleInstall = async () => {
     if (installPrompt) {
       await installPrompt.prompt()
@@ -49,9 +55,12 @@ export default function LandingPage() {
     }
   }
 
+
+
   const handleGetStarted = () => {
     router.push("/onboarding")
   }
+
 
   return (
     <div className="flex flex-col min-h-screen bg-bg px-5 justify-center items-center">
