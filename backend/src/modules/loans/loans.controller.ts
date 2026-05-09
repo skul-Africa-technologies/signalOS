@@ -1,9 +1,10 @@
-import { Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { LoansService } from './loans.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { LoanEligibilityDto, ErrorResponseDto } from '../../common/swagger/response.models';
+import { DisburseLoanDto } from './dto/disburse-loan.dto';
 
 @ApiTags('Loan Eligibility')
 @ApiBearerAuth('JWT')
@@ -32,10 +33,24 @@ Result is persisted and returned with full explainability breakdown.`,
   }
 
   @Get('eligibility')
-  @ApiOperation({ summary: 'Get cached loan eligibility', description: 'Returns the most recently evaluated loan eligibility. If no evaluation exists, triggers a fresh evaluation.' })
+  @ApiOperation({ summary: 'Get cached loan eligibility' })
   @ApiResponse({ status: 200, description: 'Loan eligibility record', type: LoanEligibilityDto })
-  @ApiResponse({ status: 401, description: 'Unauthorized', type: ErrorResponseDto })
   getEligibility(@CurrentUser('sub') userId: string) {
     return this.loans.getEligibility(userId);
+  }
+
+  @Post('disburse')
+  @ApiOperation({
+    summary: 'Disburse a loan to wallet',
+    description: 'Disburses an approved loan amount directly to the user\'s wallet. Requires prior eligibility evaluation.',
+  })
+  disburse(@CurrentUser('sub') userId: string, @Body() dto: DisburseLoanDto) {
+    return this.loans.disburse(userId, dto);
+  }
+
+  @Get('disbursements')
+  @ApiOperation({ summary: 'Get loan disbursement history' })
+  getDisbursements(@CurrentUser('sub') userId: string) {
+    return this.loans.getDisbursements(userId);
   }
 }

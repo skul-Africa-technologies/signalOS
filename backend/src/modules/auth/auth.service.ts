@@ -1,15 +1,19 @@
-import { Injectable, ConflictException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, ConflictException, UnauthorizedException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
+import { WalletService } from '../wallet/wallet.service';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly walletService: WalletService,
   ) {}
 
   async signup(dto: SignupDto) {
@@ -26,6 +30,11 @@ export class AuthService {
       },
       select: { id: true, name: true, phone: true, businessType: true, trustScore: true, createdAt: true },
     });
+
+    // Auto-create wallet for new user
+    await this.walletService.getOrCreate(user.id).catch((err) =>
+      this.logger.error(`Failed to create wallet for user ${user.id}: ${err.message}`),
+    );
 
     return { user, accessToken: this.sign(user.id, user.phone) };
   }
