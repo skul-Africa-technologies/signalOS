@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SignalExtractor } from './extractors/signal.extractor';
+import { WalletSignalExtractor } from './extractors/wallet-signal.extractor';
 import { SignalPersistenceService } from './extractors/signal-persistence.service';
 import { ScoreCalculator } from './calculators/score.calculator';
 import { TrustScoreCalculator } from './calculators/trust-score.calculator';
@@ -30,6 +31,7 @@ export class IntelligenceEngineService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly signalExtractor: SignalExtractor,
+    private readonly walletSignalExtractor: WalletSignalExtractor,
     private readonly signalPersistence: SignalPersistenceService,
     private readonly scoreCalculator: ScoreCalculator,
     private readonly trustCalculator: TrustScoreCalculator,
@@ -129,13 +131,21 @@ export class IntelligenceEngineService {
   }
 
   private async fetchSignals(userId: string) {
-    const [transactions, contributions, memberships] = await Promise.all([
+    const [transactions, contributions, memberships, wallet] = await Promise.all([
       this.prisma.transaction.findMany({ where: { userId }, orderBy: { createdAt: 'asc' } }),
       this.prisma.contribution.findMany({ where: { userId }, orderBy: { createdAt: 'asc' } }),
       this.prisma.groupMember.findMany({ where: { userId } }),
+      this.prisma.wallet.findUnique({
+        where: { userId },
+        include: { ledgerEntries: { orderBy: { createdAt: 'desc' }, take: 100 } },
+      }),
     ]);
     const dataPoints = transactions.length + contributions.length + memberships.length;
     const signals = this.signalExtractor.extract(transactions, contributions, memberships);
-    return { transactions, contributions, memberships, signals, dataPoints };
+    const walletSignals = this.walletSignalExtractor.extract(
+      wallet,
+      wallet?.ledgerEntries ?? [],
+    );
+    return { transactions, contributions, memberships, signals, walletSignals, dataPoints };
   }
 }
