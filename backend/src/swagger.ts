@@ -83,6 +83,7 @@ Obtain a token via \`POST /auth/login\` and click **Authorize** above.
     .addTag('Authentication', 'User registration, login, and JWT issuance')
     .addTag('Users', 'Authenticated user profile retrieval')
     .addTag('Wallet', 'Programmable wallet: balances, credits, debits, and ledger history')
+    .addTag('Cooperative Treasury', 'Group treasury wallets, pooled savings, cooperative lending, and treasury analytics')
     .addTag('Payouts & Withdrawals', 'Outbound money movement: bank withdrawals and payout tracking')
     .addTag('Loan Eligibility', 'Behavioral credit scoring, loan eligibility, and disbursement')
     .addTag('Savings Groups', 'Cooperative savings group management')

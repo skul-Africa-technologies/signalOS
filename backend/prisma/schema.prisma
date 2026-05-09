@@ -189,6 +189,7 @@ model SavingsGroup {
   createdBy   User          @relation("CreatedGroups", fields: [createdById], references: [id])
   members     GroupMember[]
   contributions Contribution[]
+  groupWallet SavingsGroupWallet?
 
   @@map("savings_groups")
 }
@@ -400,4 +401,125 @@ enum DisbursementStatus {
   DISBURSED
   REPAID
   DEFAULTED
+}
+
+// ─── Cooperative Treasury ─────────────────────────────────────────────────────
+
+model SavingsGroupWallet {
+  id                  String   @id @default(cuid())
+  groupId             String   @unique
+  availableBalance    Float    @default(0)
+  reserveBalance      Float    @default(0)
+  lendingPoolBalance  Float    @default(0)
+  totalContributions  Float    @default(0)
+  totalLoansIssued    Float    @default(0)
+  totalWithdrawals    Float    @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  group        SavingsGroup       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  ledgerEntries GroupLedgerEntry[]
+  groupLoans   GroupLoan[]
+
+  @@map("savings_group_wallets")
+}
+
+model GroupLedgerEntry {
+  id             String              @id @default(cuid())
+  groupWalletId  String
+  type           LedgerEntryType
+  direction      LedgerDirection
+  amount         Float
+  reference      String              @unique
+  category       GroupLedgerCategory
+  status         LedgerStatus        @default(COMPLETED)
+  balanceBefore  Float
+  balanceAfter   Float
+  memberId       String?
+  metadata       Json?
+  createdAt      DateTime            @default(now())
+
+  groupWallet SavingsGroupWallet @relation(fields: [groupWalletId], references: [id], onDelete: Cascade)
+
+  @@index([groupWalletId])
+  @@index([reference])
+  @@index([createdAt])
+  @@map("group_ledger_entries")
+}
+
+enum GroupLedgerCategory {
+  MEMBER_CONTRIBUTION
+  GROUP_LOAN_DISBURSEMENT
+  GROUP_LOAN_REPAYMENT
+  ROTATIONAL_PAYOUT
+  MEMBER_WITHDRAWAL
+  TREASURY_RESERVE
+  TREASURY_ADJUSTMENT
+}
+
+model GroupLoan {
+  id             String          @id @default(cuid())
+  groupWalletId  String
+  groupId        String
+  borrowerId     String
+  amount         Float
+  reference      String          @unique
+  status         GroupLoanStatus @default(PENDING)
+  loanTermDays   Int             @default(30)
+  dueDate        DateTime?
+  disbursedAt    DateTime?
+  repaidAt       DateTime?
+  repaidAmount   Float           @default(0)
+  metadata       Json?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  groupWallet SavingsGroupWallet @relation(fields: [groupWalletId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@index([borrowerId])
+  @@index([status])
+  @@map("group_loans")
+}
+
+enum GroupLoanStatus {
+  PENDING
+  APPROVED
+  DISBURSED
+  REPAID
+  DEFAULTED
+}
+
+model GroupEconomicProfile {
+  id                      String   @id @default(cuid())
+  groupId                 String   @unique
+  treasuryHealth          Float    @default(0)
+  groupReliability        Float    @default(0)
+  contributionConsistency Float    @default(0)
+  repaymentPerformance    Float    @default(0)
+  memberParticipation     Float    @default(0)
+  liquidityStability      Float    @default(0)
+  lendingSustainability   Float    @default(0)
+  sustainabilityScore     Float    @default(0)
+  reserveRatio            Float    @default(0)
+  updatedAt               DateTime @updatedAt
+
+  @@map("group_economic_profiles")
+}
+
+model TreasurySnapshot {
+  id                  String   @id @default(cuid())
+  groupId             String
+  treasuryBalance     Float
+  reserveRatio        Float
+  lendingCapacity     Float
+  activeLoans         Int      @default(0)
+  sustainabilityScore Float
+  memberCount         Int      @default(0)
+  triggeredBy         String   @default("contribution")
+  createdAt           DateTime @default(now())
+
+  @@index([groupId])
+  @@index([createdAt])
+  @@map("treasury_snapshots")
 }
