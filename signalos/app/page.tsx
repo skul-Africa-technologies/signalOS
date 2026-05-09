@@ -9,6 +9,7 @@ interface BeforeInstallPromptEvent extends Event {
 export default function LandingPage() {
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [canInstall, setCanInstall] = useState(false)
+  const [showManual, setShowManual] = useState(false)
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -42,11 +43,28 @@ export default function LandingPage() {
           disabled={!canInstall}
           className="w-full h-11 bg-text-1 text-white font-medium rounded-lg text-sm tracking-[-0.01em] disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Install app
+          {canInstall ? "Install app" : "Install on Android Chrome"}
         </button>
 
+        {!canInstall && (
+          <button
+            onClick={() => setShowManual(!showManual)}
+            className="w-full h-11 border border-border rounded-lg text-sm font-medium mt-2"
+          >
+            Show manual install options
+          </button>
+        )}
+
+        {showManual && (
+          <div className="mt-4 p-4 bg-surface border border-border rounded-lg text-left text-sm space-y-2">
+            <p className="font-medium">To install manually:</p>
+            <p>1. Open in Chrome on Android</p>
+            <p>2. Tap menu (⋮) → Add to Home screen</p>
+          </div>
+        )}
+
         <div className="mt-16 space-y-2 text-sm text-text-2">
-          <p>PWA installable on any device</p>
+          <p>PWA installable on Android Chrome</p>
           <p>Works offline with local data</p>
           <p>No internet required</p>
           <p>Designed for informal traders</p>
