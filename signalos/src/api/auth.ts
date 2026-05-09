@@ -1,28 +1,69 @@
-// Mock data for auth
-const mockUser = {
-  id: '1',
-  name: 'Ada Johnson',
-  phone: '+234 803 123 4567',
-  location: 'Wuse Market',
-  businessType: 'Trader',
-  bvnVerified: true,
-  ninVerified: false,
+export interface User {
+  id: string;
+  name: string;
+  phone: string;
+  businessType: string;
+  trustScore: number;
+  createdAt: string;
+  updatedAt?: string;
 }
 
-export async function login(_phone: string): Promise<{ success: boolean; user: typeof mockUser }> {
-  console.log('auth.login')
-  await new Promise(r => setTimeout(r, 400))
-  return { success: true, user: mockUser }
+export interface AuthResponse {
+  user: User;
+  accessToken: string;
+}
+
+export async function login(phone: string, password: string): Promise<AuthResponse> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (!baseUrl) {
+    throw new Error('NEXT_PUBLIC_API_BASE_URL is not defined');
+  }
+
+  const res = await fetch(`${baseUrl}/api/v1/auth/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ phone, password }),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.message || 'Login failed');
+  }
+
+  return res.json();
+}
+
+export async function signup(
+  name: string,
+  phone: string,
+  password: string,
+  businessType: string
+): Promise<AuthResponse> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (!baseUrl) {
+    throw new Error('NEXT_PUBLIC_API_BASE_URL is not defined');
+  }
+
+  const res = await fetch(`${baseUrl}/api/v1/auth/signup`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name, phone, password, businessType }),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.message || 'Signup failed');
+  }
+
+  return res.json();
 }
 
 export async function logout(): Promise<{ success: boolean }> {
-  console.log('auth.logout')
-  await new Promise(r => setTimeout(r, 400))
-  return { success: true }
-}
-
-export async function getProfile(): Promise<typeof mockUser> {
-  console.log('auth.getProfile')
-  await new Promise(r => setTimeout(r, 400))
-  return mockUser
+  // In a real app, you might want to call a logout endpoint to invalidate the token on the server
+  // For now, we'll just return success and let the client handle token removal
+  return { success: true };
 }

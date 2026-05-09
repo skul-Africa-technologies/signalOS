@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import UpdateNotification from "./update-notification";
+import { AuthProvider } from "@/src/context/AuthContext";
 
 export const metadata: Metadata = {
   title: "Signal OS",
@@ -29,8 +30,10 @@ export default function RootLayout({
     <html lang="en" className="h-full">
       <head />
       <body className="min-h-full bg-bg text-text-1 font-sans antialiased">
-        <UpdateNotification />
-        {children}
+        <AuthProvider>
+          <UpdateNotification />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );
