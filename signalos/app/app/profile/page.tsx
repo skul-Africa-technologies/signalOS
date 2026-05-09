@@ -1,10 +1,19 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { useOnboardingStore } from "@/src/store"
+import { useAuth } from "@/src/context/AuthContext"
 import { LogOut } from "lucide-react"
 
 export default function ProfilePage() {
+  const router = useRouter()
   const { name, location, businessType, phone, bvnVerified, ninVerified } = useOnboardingStore()
+  const { logout } = useAuth()
+
+  const handleLogout = () => {
+    logout()
+    router.push("/login")
+  }
 
   const initials = name ? name.split(" ").map(n => n[0]).join("") : "A"
 
@@ -85,7 +94,7 @@ export default function ProfilePage() {
             <span className="text-sm">Help</span>
             <span className="text-sm text-text-2">FAQ</span>
           </div>
-          <button className="flex items-center gap-2 py-3 text-danger">
+          <button onClick={handleLogout} className="flex items-center gap-2 py-3 text-danger">
             <LogOut size={18} />
             <span className="text-sm">Log out</span>
           </button>
