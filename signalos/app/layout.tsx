@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import UpdateNotification from "./update-notification";
 import { AuthProvider } from "@/src/context/AuthContext";
+import { Analytics } from "@vercel/analytics/next"
 
 export const metadata: Metadata = {
   title: "Signal OS",
@@ -34,6 +35,7 @@ export default function RootLayout({
           <UpdateNotification />
           {children}
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );
