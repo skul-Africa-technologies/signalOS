@@ -1,28 +1,92 @@
-// Mock data for auth
-const mockUser = {
-  id: '1',
-  name: 'Ada Johnson',
-  phone: '+234 803 123 4567',
-  location: 'Wuse Market',
-  businessType: 'Trader',
-  bvnVerified: true,
-  ninVerified: false,
+/**
+ * Authentication Service Layer
+ *
+ * Centralized API functions for auth operations.
+ * All methods use the centralized api client with automatic token injection.
+ */
+
+import api from './client'
+import type { User, AuthResponse, BusinessType } from '@/types'
+
+const AUTH_ENDPOINT = '/api/v1/auth'
+const USERS_ENDPOINT = '/api/v1/users'
+
+/**
+ * Login with phone and password
+ */
+export async function login(phone: string, password: string): Promise<AuthResponse> {
+  const response = await api.post<AuthResponse>(`${AUTH_ENDPOINT}/login`, {
+    phone,
+    password,
+  })
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error?.message || 'Login failed')
+  }
+
+  return response.data
 }
 
-export async function login(_phone: string): Promise<{ success: boolean; user: typeof mockUser }> {
-  console.log('auth.login')
-  await new Promise(r => setTimeout(r, 400))
-  return { success: true, user: mockUser }
+/**
+ * Sign up new user
+ */
+export async function signup(
+  name: string,
+  phone: string,
+  password: string,
+  businessType: BusinessType
+): Promise<AuthResponse> {
+  const response = await api.post<AuthResponse>(`${AUTH_ENDPOINT}/signup`, {
+    name,
+    phone,
+    password,
+    businessType,
+  })
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error?.message || 'Signup failed')
+  }
+
+  return response.data
 }
 
+/**
+ * Get the currently authenticated user profile
+ * GET /api/v1/users/me
+ */
+export async function getCurrentUser(): Promise<User> {
+  const response = await api.get<User>(`${USERS_ENDPOINT}/me`)
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error?.message || 'Failed to fetch user profile')
+  }
+
+  return response.data
+}
+
+/**
+ * Update current user profile
+ * PATCH /api/v1/users/me
+ */
+export async function updateUser(updates: Partial<Pick<User, 'name' | 'businessType'>>): Promise<User> {
+  const response = await api.patch<User>(`${USERS_ENDPOINT}/me`, updates)
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error?.message || 'Failed to update profile')
+  }
+
+  return response.data
+}
+
+/**
+ * Logout - token is cleared on client, server-side invalidation optional
+ * POST /api/v1/auth/logout
+ */
 export async function logout(): Promise<{ success: boolean }> {
-  console.log('auth.logout')
-  await new Promise(r => setTimeout(r, 400))
-  return { success: true }
-}
-
-export async function getProfile(): Promise<typeof mockUser> {
-  console.log('auth.getProfile')
-  await new Promise(r => setTimeout(r, 400))
-  return mockUser
+  try {
+    const response = await api.post<{ success: boolean }>(`${AUTH_ENDPOINT}/logout`)
+    return response.data || { success: true }
+  } catch {
+    return { success: true }
+  }
 }
