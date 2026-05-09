@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: signalOS-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm ci && npx prisma generate && npx nest build
+    startCommand: npx prisma migrate deploy && npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: SQUAD_SECRET_KEY
+        sync: false
+      - key: SQUAD_PUBLIC_KEY
+        sync: false
+      - key: SQUAD_REDIRECT_URL
+        sync: false
+      - key: SQUAD_WEBHOOK_URL
+        sync: false
+      - key: SQUAD_ENV
+        value: sandbox

@@ -1,0 +1,238 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Core Identity ────────────────────────────────────────────────────────────
+
+model User {
+  id           String       @id @default(cuid())
+  phone        String       @unique
+  name         String
+  passwordHash String
+  businessType BusinessType @default(TRADER)
+  trustScore   Float        @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  profile      EconomicProfile?
+  transactions Transaction[]
+  groupMemberships GroupMember[]
+  contributions    Contribution[]
+  createdGroups    SavingsGroup[] @relation("CreatedGroups")
+  loanEligibility  LoanEligibility?
+  financialSignals    FinancialSignal[]
+  riskAssessments     RiskAssessment[]
+  intelligenceSnapshots IntelligenceSnapshot[]
+
+  @@map("users")
+}
+
+enum BusinessType {
+  TRADER
+  ARTISAN
+  FREELANCER
+  VENDOR
+  OTHER
+}
+
+// ─── Economic Identity ────────────────────────────────────────────────────────
+
+model EconomicProfile {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  trustScore          Float    @default(0)
+  reliabilityScore    Float    @default(0)
+  employabilityScore  Float    @default(0)
+  liquidityScore      Float    @default(0)
+  consistencyScore    Float    @default(0)
+  growthScore         Float    @default(0)
+  participationScore  Float    @default(0)
+  activityLevel       Float    @default(0)
+  riskLevel           String   @default("Very High")
+  occupation          String?
+  location            String?
+  updatedAt           DateTime @updatedAt
+
+  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  signals             FinancialSignal[]
+  riskAssessments     RiskAssessment[]
+  snapshots           IntelligenceSnapshot[]
+
+  @@map("economic_profiles")
+}
+
+// ─── Intelligence Layer ───────────────────────────────────────────────────────
+
+// One row per extraction run — longitudinal signal history
+model FinancialSignal {
+  id                      String   @id @default(cuid())
+  userId                  String
+  profileId               String
+  transactionFrequency    Float
+  repaymentConsistency    Float
+  repeatCustomerRate      Float
+  incomeStability         Float
+  cashflowVolatility      Float
+  activityLevel           Float
+  savingsBehaviour        Float
+  contributionReliability Float
+  groupParticipation      Float
+  dataPoints              Int      @default(0)
+  extractedAt             DateTime @default(now())
+
+  profile EconomicProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([extractedAt])
+  @@map("financial_signals")
+}
+
+// One row per risk evaluation — tracks risk evolution over time
+model RiskAssessment {
+  id                   String   @id @default(cuid())
+  userId               String
+  profileId            String
+  riskLevel            String
+  riskScore            Float
+  volatilityDetected   Boolean  @default(false)
+  inactivityDetected   Boolean  @default(false)
+  flags                Json     // string[]
+  assessedAt           DateTime @default(now())
+
+  profile EconomicProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([assessedAt])
+  @@map("risk_assessments")
+}
+
+// Full point-in-time intelligence snapshot — enables longitudinal analytics and ML
+model IntelligenceSnapshot {
+  id                 String   @id @default(cuid())
+  userId             String
+  profileId          String
+  trustScore         Float
+  riskLevel          String
+  confidenceLevel    String
+  eligibleForLoan    Boolean  @default(false)
+  eligibleAmount     Float    @default(0)
+  recommendations    Json     // string[]
+  signalSummary      Json     // EconomicSignals as JSON
+  scoreSummary       Json     // IntelligenceScores as JSON
+  triggeredBy        String   @default("analysis")
+  createdAt          DateTime @default(now())
+
+  profile EconomicProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("intelligence_snapshots")
+}
+
+// ─── Transactions ─────────────────────────────────────────────────────────────
+
+model Transaction {
+  id              String            @id @default(cuid())
+  userId          String
+  reference       String            @unique
+  squadReference  String?           @unique
+  amount          Float
+  currency        String            @default("NGN")
+  type            TransactionType
+  status          TransactionStatus @default(PENDING)
+  channel         String?
+  metadata        Json?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("transactions")
+}
+
+enum TransactionType {
+  CREDIT
+  DEBIT
+  TRANSFER
+  SAVINGS
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+// ─── Cooperative Savings ──────────────────────────────────────────────────────
+
+model SavingsGroup {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  targetAmount Float        @default(0)
+  createdById String
+  createdAt   DateTime      @default(now())
+
+  createdBy   User          @relation("CreatedGroups", fields: [createdById], references: [id])
+  members     GroupMember[]
+  contributions Contribution[]
+
+  @@map("savings_groups")
+}
+
+model GroupMember {
+  id        String      @id @default(cuid())
+  userId    String
+  groupId   String
+  joinedAt  DateTime    @default(now())
+
+  user  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group SavingsGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
+  @@map("group_members")
+}
+
+// ─── Loan Eligibility ─────────────────────────────────────────────────────────
+
+model LoanEligibility {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  eligible        Boolean  @default(false)
+  eligibleAmount  Float    @default(0)
+  riskLevel       String   @default("Very High")
+  recommendation  String
+  trustScore      Float
+  evaluatedAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("loan_eligibility")
+}
+
+model Contribution {
+  id        String      @id @default(cuid())
+  userId    String
+  groupId   String
+  amount    Float
+  createdAt DateTime    @default(now())
+
+  user  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group SavingsGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([groupId])
+  @@map("contributions")
+}
