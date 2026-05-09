@@ -49,7 +49,7 @@ export default function OnboardingPage() {
 
         {step === 1 && (
           <div className="text-center">
-            <h1 className="text-2xl font-medium tracking-[-0.01em] mb-3">Kora</h1>
+            <h1 className="text-2xl font-medium tracking-[-0.01em] mb-3">Signal</h1>
             <p className="text-text-2 mb-8">Your shop in your pocket</p>
           </div>
         )}
