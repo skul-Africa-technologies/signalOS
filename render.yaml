@@ -3,7 +3,7 @@ services:
     name: signalOS-backend
     runtime: node
     rootDir: backend
-    buildCommand: npm install && npx prisma generate && npm run build
+    buildCommand: npm ci && npx prisma generate && npx nest build
     startCommand: npx prisma migrate deploy && npm run start
     envVars:
       - key: NODE_ENV
