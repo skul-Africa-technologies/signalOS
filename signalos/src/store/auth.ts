@@ -30,7 +30,7 @@ export const useAuthStore = create<AuthState>()(
         set({ loading: true, error: null })
         try {
           const { user, accessToken }: AuthResponse = await login(phone, password)
-          set({ user, accessToken, loading: false })
+          set({ user, accessToken, loading: false, initialized: true })
         } catch (err) {
           const message = err instanceof Error ? err.message : 'Login failed'
           set({ error: message, loading: false })
@@ -42,7 +42,7 @@ export const useAuthStore = create<AuthState>()(
         set({ loading: true, error: null })
         try {
           const { user, accessToken }: AuthResponse = await signup(name, phone, password, businessType as BusinessType)
-          set({ user, accessToken, loading: false })
+          set({ user, accessToken, loading: false, initialized: true })
         } catch (err) {
           const message = err instanceof Error ? err.message : 'Signup failed'
           set({ error: message, loading: false })
@@ -56,7 +56,7 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           console.error('Logout API error (ignored):', error)
         }
-        set({ user: null, accessToken: null, error: null })
+        set({ user: null, accessToken: null, error: null, initialized: true })
       },
 
       setUser: (user: User | null) => set({ user }),
@@ -65,7 +65,7 @@ export const useAuthStore = create<AuthState>()(
 
       hydrate: async () => {
         const { accessToken } = get()
-        
+
         if (!accessToken) {
           set({ initialized: true })
           return
@@ -77,29 +77,24 @@ export const useAuthStore = create<AuthState>()(
           set({ user, loading: false, initialized: true })
         } catch (error) {
           console.error('Auth hydration failed:', error)
-          set({ 
-            user: null, 
-            accessToken: null, 
-            loading: false, 
-            initialized: true 
-          })
+          // Keep existing token/user state if not cleared by auth error handler (401)
+          // For network/server errors, user remains authenticated with cached data
+          // For 401, the handleAuthError already cleared storage and dispatched event
+          set({ loading: false, initialized: true })
         }
       },
     }),
     {
       name: 'signal-auth',
-      partialize: (state) => ({ 
-        user: state.user, 
-        accessToken: state.accessToken 
+      partialize: (state) => ({
+        user: state.user,
+        accessToken: state.accessToken
       }),
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          state.initialized = true
-        }
-      },
+      // IMPORTANT: Do NOT set initialized here. Let hydrate() control it.
+      // onRehydrateStorage would set initialized=true prematurely before user fetch
     }
-  )
-)
+   )
+ )
 
 // Listen for auth invalidation events
 if (typeof window !== 'undefined') {
