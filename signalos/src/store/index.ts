@@ -37,7 +37,7 @@ export const useOnboardingStore = create<OnboardingState>()(
       }),
     }),
     {
-      name: 'kora-onboarding',
+      name: 'signal-onboarding',
     }
   )
 )
