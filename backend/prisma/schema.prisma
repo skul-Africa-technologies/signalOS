@@ -29,6 +29,7 @@ model User {
   financialSignals    FinancialSignal[]
   riskAssessments     RiskAssessment[]
   intelligenceSnapshots IntelligenceSnapshot[]
+  wallet              Wallet?
 
   @@map("users")
 }
@@ -235,4 +236,168 @@ model Contribution {
   @@index([userId])
   @@index([groupId])
   @@map("contributions")
+}
+
+// ─── Wallet Infrastructure ────────────────────────────────────────────────────
+
+model Wallet {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  availableBalance Float    @default(0)
+  pendingBalance   Float    @default(0)
+  frozenBalance    Float    @default(0)
+  totalCredits     Float    @default(0)
+  totalDebits      Float    @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ledgerEntries LedgerEntry[]
+  payouts      Payout[]
+  withdrawals  Withdrawal[]
+
+  @@map("wallets")
+}
+
+model LedgerEntry {
+  id            String          @id @default(cuid())
+  walletId      String
+  type          LedgerEntryType
+  direction     LedgerDirection
+  amount        Float
+  reference     String          @unique
+  category      LedgerCategory
+  status        LedgerStatus    @default(COMPLETED)
+  balanceBefore Float
+  balanceAfter  Float
+  metadata      Json?
+  createdAt     DateTime        @default(now())
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@index([reference])
+  @@index([createdAt])
+  @@map("ledger_entries")
+}
+
+enum LedgerEntryType {
+  CREDIT
+  DEBIT
+}
+
+enum LedgerDirection {
+  CREDIT
+  DEBIT
+}
+
+enum LedgerCategory {
+  PAYMENT_RECEIVED
+  SAVINGS_CONTRIBUTION
+  LOAN_DISBURSEMENT
+  WITHDRAWAL
+  REFUND
+  CASHBACK
+  INTERNAL_TRANSFER
+}
+
+enum LedgerStatus {
+  PENDING
+  COMPLETED
+  REVERSED
+}
+
+// ─── Payout / Withdrawal ──────────────────────────────────────────────────────
+
+model Payout {
+  id            String       @id @default(cuid())
+  walletId      String
+  userId        String
+  amount        Float
+  reference     String       @unique
+  status        PayoutStatus @default(PENDING)
+  provider      String       @default("squad")
+  providerRef   String?
+  bankCode      String
+  accountNumber String
+  accountName   String
+  narration     String?
+  failureReason String?
+  metadata      Json?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@index([userId])
+  @@index([status])
+  @@map("payouts")
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
+  REVERSED
+}
+
+model Withdrawal {
+  id            String           @id @default(cuid())
+  walletId      String
+  userId        String
+  amount        Float
+  reference     String           @unique
+  status        WithdrawalStatus @default(PENDING)
+  bankCode      String
+  accountNumber String
+  accountName   String
+  narration     String?
+  payoutId      String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@index([userId])
+  @@map("withdrawals")
+}
+
+enum WithdrawalStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// ─── Loan Disbursement ────────────────────────────────────────────────────────
+
+model LoanDisbursement {
+  id          String             @id @default(cuid())
+  userId      String
+  walletId    String
+  amount      Float
+  reference   String             @unique
+  status      DisbursementStatus @default(PENDING)
+  loanTermDays Int               @default(30)
+  dueDate     DateTime?
+  disbursedAt DateTime?
+  repaidAt    DateTime?
+  metadata    Json?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("loan_disbursements")
+}
+
+enum DisbursementStatus {
+  PENDING
+  APPROVED
+  DISBURSED
+  REPAID
+  DEFAULTED
 }

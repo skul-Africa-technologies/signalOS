@@ -5,7 +5,9 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { LedgerCategory } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { WalletService } from '../wallet/wallet.service';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { ContributeDto } from './dto/contribute.dto';
 
@@ -16,6 +18,7 @@ export class SavingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly events: EventEmitter2,
+    private readonly walletService: WalletService,
   ) {}
 
   createGroup(userId: string, dto: CreateGroupDto) {
@@ -53,6 +56,23 @@ export class SavingsService {
       data: { userId, groupId, amount: dto.amount },
     });
 
+    // Debit wallet for savings contribution
+    try {
+      const wallet = await this.walletService.getOrCreate(userId);
+      const walletRecord = await this.prisma.wallet.findUnique({ where: { id: wallet.id } });
+      if (walletRecord && walletRecord.availableBalance >= dto.amount) {
+        await this.walletService.debit({
+          userId,
+          amount: dto.amount,
+          category: LedgerCategory.SAVINGS_CONTRIBUTION,
+          reference: `savings_${contribution.id}`,
+          metadata: { groupId, contributionId: contribution.id },
+        });
+      }
+    } catch {
+      // Non-blocking: wallet debit failure doesn't block contribution recording
+    }
+
     this.events.emit(SAVINGS_CONTRIBUTION_EVENT, { userId, contribution });
 
     return contribution;
@@ -88,5 +108,14 @@ export class SavingsService {
       : null;
 
     return { group, memberCount, totalSaved, contributionCount: contributions.length, progress };
+  }
+
+  async getGroupBalance(groupId: string) {
+    const contributions = await this.prisma.contribution.findMany({ where: { groupId } });
+    return {
+      groupId,
+      totalPooled: contributions.reduce((s, c) => s + c.amount, 0),
+      contributionCount: contributions.length,
+    };
   }
 }

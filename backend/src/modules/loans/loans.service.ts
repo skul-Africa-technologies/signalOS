@@ -1,7 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { DisbursementStatus, LedgerCategory } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TrustScoreService } from '../trust-score/trust-score.service';
+import { WalletService } from '../wallet/wallet.service';
+import { DisburseLoanDto } from './dto/disburse-loan.dto';
 import type { RiskLevel } from '../trust-score/scoring.engine';
+
+export const LOAN_EVENTS = {
+  APPROVED: 'loan.approved',
+  DISBURSED: 'loan.disbursed',
+} as const;
 
 export interface EligibilityResult {
   eligible: boolean;
@@ -15,9 +24,13 @@ export interface EligibilityResult {
 
 @Injectable()
 export class LoansService {
+  private readonly logger = new Logger(LoansService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly trustScore: TrustScoreService,
+    private readonly walletService: WalletService,
+    private readonly events: EventEmitter2,
   ) {}
 
   async evaluate(userId: string): Promise<EligibilityResult> {
@@ -37,6 +50,10 @@ export class LoansService {
       update: { eligible, eligibleAmount, riskLevel, recommendation, trustScore, evaluatedAt: new Date() },
     });
 
+    if (eligible) {
+      this.events.emit(LOAN_EVENTS.APPROVED, { userId, eligibleAmount, trustScore, riskLevel });
+    }
+
     return { eligible, eligibleAmount, riskLevel, recommendation, trustScore, breakdown, reasons };
   }
 
@@ -46,9 +63,85 @@ export class LoansService {
     return record;
   }
 
+  async disburse(userId: string, dto: DisburseLoanDto) {
+    const eligibility = await this.getEligibility(userId);
+    if (!eligibility.eligible) {
+      throw new BadRequestException('User is not eligible for a loan');
+    }
+    if (dto.amount > eligibility.eligibleAmount) {
+      throw new BadRequestException(
+        `Requested amount ₦${dto.amount} exceeds eligible amount ₦${eligibility.eligibleAmount}`,
+      );
+    }
+
+    // Prevent duplicate active disbursements
+    const activeLoan = await this.prisma.loanDisbursement.findFirst({
+      where: { userId, status: { in: [DisbursementStatus.DISBURSED, DisbursementStatus.APPROVED] } },
+    });
+    if (activeLoan) {
+      throw new BadRequestException('User already has an active loan disbursement');
+    }
+
+    const reference = `loan_${userId}_${Date.now()}`;
+    const wallet = await this.walletService.getOrCreate(userId);
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + (dto.loanTermDays ?? 30));
+
+    const disbursement = await this.prisma.$transaction(async (tx) => {
+      const w = await tx.wallet.findUnique({ where: { id: wallet.id } });
+
+      const disbursement = await tx.loanDisbursement.create({
+        data: {
+          userId,
+          walletId: wallet.id,
+          amount: dto.amount,
+          reference,
+          status: DisbursementStatus.DISBURSED,
+          loanTermDays: dto.loanTermDays ?? 30,
+          dueDate,
+          disbursedAt: new Date(),
+        },
+      });
+
+      await tx.wallet.update({
+        where: { id: wallet.id },
+        data: {
+          availableBalance: { increment: dto.amount },
+          totalCredits: { increment: dto.amount },
+        },
+      });
+
+      await tx.ledgerEntry.create({
+        data: {
+          walletId: wallet.id,
+          type: 'CREDIT',
+          direction: 'CREDIT',
+          amount: dto.amount,
+          reference: `ledger_${reference}`,
+          category: LedgerCategory.LOAN_DISBURSEMENT,
+          balanceBefore: w?.availableBalance ?? 0,
+          balanceAfter: (w?.availableBalance ?? 0) + dto.amount,
+          metadata: { disbursementId: disbursement.id, dueDate },
+        },
+      });
+
+      return disbursement;
+    });
+
+    this.events.emit(LOAN_EVENTS.DISBURSED, { userId, disbursement });
+    this.logger.log(`Loan disbursed: user=${userId} amount=${dto.amount} ref=${reference}`);
+    return disbursement;
+  }
+
+  async getDisbursements(userId: string) {
+    return this.prisma.loanDisbursement.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   private calcAmount(score: number, risk: RiskLevel): number {
     if (score < 40) return 0;
-    // Base: ₦5,000 per trust point above 40, capped by risk tier
     const base = (score - 40) * 5000;
     const caps: Record<RiskLevel, number> = {
       Low: 500_000,
