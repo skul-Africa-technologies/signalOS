@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Kora OS",
+  title: "signal OS",
   description: "Turn your daily trade into financial power",
   manifest: "/manifest.json",
   appleWebApp: {

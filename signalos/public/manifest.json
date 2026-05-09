@@ -1,6 +1,6 @@
 {
-  "name": "Kora OS",
-  "short_name": "Kora",
+  "name": "signal OS",
+  "short_name": "signal OS",
   "description": "Turn your daily trade into financial power",
   "start_url": "/",
   "display": "standalone",
