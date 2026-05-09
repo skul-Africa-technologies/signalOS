@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/src/context/AuthContext"
 import { useOnboardingStore } from "@/src/store"
 
 interface BeforeInstallPromptEvent extends Event {
@@ -11,30 +12,27 @@ interface BeforeInstallPromptEvent extends Event {
 export default function LandingPage() {
   const router = useRouter()
   const { completed } = useOnboardingStore()
+  const { storageRestored, hasToken } = useAuth()
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [canInstall, setCanInstall] = useState(false)
   const [mounted, setMounted] = useState(false)
 
-
-
-  // Check localStorage directly to avoid hydration mismatch
+  // Handle redirect after auth and onboarding state are known
   useEffect(() => {
-    setMounted(true)
-    // Check if user has completed onboarding from localStorage
-    try {
-      const stored = localStorage.getItem("signal-onboarding")
-      if (stored) {
-        const data = JSON.parse(stored)
-        if (data?.state?.completed) {
-          // Use window.location for redirect to avoid router initialization issues
-          window.location.href = "/app/home"
-        }
-      }
-    } catch (e) {
-      // Ignore parse errors
+    if (!mounted || !storageRestored) return
+
+    // If user has token AND onboarding completed, go to app
+    if (hasToken && completed) {
+      // Use window.location to avoid Next.js router initialization race
+      window.location.href = "/app/home"
     }
+  }, [mounted, storageRestored, hasToken, completed])
+
+  // Mark component as mounted on client
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true)
   }, [])
-  
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -46,8 +44,6 @@ export default function LandingPage() {
     return () => window.removeEventListener("beforeinstallprompt", handler)
   }, [])
 
-
-
   const handleInstall = async () => {
     if (installPrompt) {
       await installPrompt.prompt()
@@ -55,12 +51,9 @@ export default function LandingPage() {
     }
   }
 
-
-
   const handleGetStarted = () => {
     router.push("/onboarding")
   }
-
 
   return (
     <div className="flex flex-col min-h-screen bg-bg px-5 justify-center items-center">
@@ -73,7 +66,7 @@ export default function LandingPage() {
             <p className="text-text-2 mb-12">
               Turn your daily trade into financial power
             </p>
-            
+
             <button
               onClick={handleGetStarted}
               className="w-full h-11 bg-text-1 text-white font-medium rounded-lg text-sm tracking-[-0.01em] mb-3"

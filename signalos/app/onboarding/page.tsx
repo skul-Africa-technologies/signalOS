@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { useOnboardingStore } from "@/src/store"
 
 export default function OnboardingPage() {
@@ -18,7 +17,6 @@ export default function OnboardingPage() {
 
   const updateStore = useOnboardingStore((s) => s.setOnboardingData)
   const completeOnboarding = useOnboardingStore((s) => s.completeOnboarding)
-  const router = useRouter()
 
   const handleNext = async () => {
     if (step === 1) {
@@ -28,7 +26,7 @@ export default function OnboardingPage() {
       updateStore(formData)
       await new Promise(r => setTimeout(r, 400))
       completeOnboarding()
-      router.push("/app/home")
+      window.location.href = "/app/home"
     }
     if (step < 4) setStep(step + 1)
   }

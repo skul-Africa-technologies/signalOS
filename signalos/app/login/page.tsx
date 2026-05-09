@@ -1,11 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { useAuth } from "@/src/context/AuthContext"
 
 export default function LoginPage() {
-  const router = useRouter()
   const { login, loading, error } = useAuth()
   const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")
@@ -14,10 +12,10 @@ export default function LoginPage() {
     e.preventDefault()
     try {
       await login(phone, password)
-      router.push("/app/home")
-    } catch (err: any) {
+      // Use window.location for more reliable post-login navigation
+      window.location.href = "/app/home"
+    } catch (err) {
       // Error is already set by the auth store via useAuth
-      // We can also set a local error state if needed
       console.error(err)
     }
   }
@@ -78,7 +76,7 @@ export default function LoginPage() {
           </button>
         </form>
         <p className="text-sm text-text-2 text-center">
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <a
             href="/signup"
             className="font-medium text-primary hover:underline"

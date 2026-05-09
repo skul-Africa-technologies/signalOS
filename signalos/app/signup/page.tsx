@@ -1,11 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { useAuth } from "@/src/context/AuthContext"
 
 export default function SignupPage() {
-  const router = useRouter()
   const { signup, loading, error } = useAuth()
   const [name, setName] = useState("")
   const [phone, setPhone] = useState("")
@@ -16,9 +14,8 @@ export default function SignupPage() {
     e.preventDefault()
     try {
       await signup(name, phone, password, businessType)
-      router.push("/app/home")
-    } catch (err: any) {
-      // Error is already set by the auth store via useAuth
+      window.location.href = "/app/home"
+    } catch (err) {
       console.error(err)
     }
   }
