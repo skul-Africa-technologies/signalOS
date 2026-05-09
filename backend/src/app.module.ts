@@ -16,6 +16,10 @@ import { OpportunitiesModule } from './modules/opportunities/opportunities.modul
 import { LoansModule } from './modules/loans/loans.module';
 import { RecommendationsModule } from './modules/recommendations/recommendations.module';
 import { IntelligenceEngineModule } from './modules/intelligence-engine/intelligence-engine.module';
+import { LedgerModule } from './modules/ledger/ledger.module';
+import { WalletModule } from './modules/wallet/wallet.module';
+import { PayoutModule } from './modules/payout/payout.module';
+import { CooperativeModule } from './modules/cooperative/cooperative.module';
 
 @Module({
   imports: [
@@ -39,6 +43,10 @@ import { IntelligenceEngineModule } from './modules/intelligence-engine/intellig
     LoansModule,
     RecommendationsModule,
     IntelligenceEngineModule,
+    LedgerModule,
+    WalletModule,
+    PayoutModule,
+    CooperativeModule,
   ],
 })
 export class AppModule {}

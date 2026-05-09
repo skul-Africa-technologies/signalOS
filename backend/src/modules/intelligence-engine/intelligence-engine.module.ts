@@ -6,6 +6,8 @@ import { PaymentSuccessListener } from './listeners/payment-success.listener';
 import { SavingsContributionListener } from './listeners/savings-contribution.listener';
 import { TransactionFailedListener } from './listeners/transaction-failed.listener';
 import { InactiveUserListener } from './listeners/inactive-user.listener';
+import { WalletIntelligenceListener } from './listeners/wallet-intelligence.listener';
+import { TreasuryIntelligenceListener } from './listeners/treasury-intelligence.listener';
 // Extractors
 import { SignalExtractor } from './extractors/signal.extractor';
 import { PaymentSignalExtractor } from './extractors/payment-signal.extractor';
@@ -13,6 +15,8 @@ import { SavingsSignalExtractor } from './extractors/savings-signal.extractor';
 import { TransactionSignalExtractor } from './extractors/transaction-signal.extractor';
 import { ParticipationSignalExtractor } from './extractors/participation-signal.extractor';
 import { SignalPersistenceService } from './extractors/signal-persistence.service';
+import { WalletSignalExtractor } from './extractors/wallet-signal.extractor';
+import { TreasurySignalExtractor } from './extractors/treasury-signal.extractor';
 // Analyzers
 import { BehaviourAnalyzer } from './analyzers/behaviour.analyzer';
 import { CashflowAnalyzer } from './analyzers/cashflow.analyzer';
@@ -47,6 +51,8 @@ import { SnapshotService } from './profiles/snapshot.service';
     TransactionSignalExtractor,
     ParticipationSignalExtractor,
     SignalPersistenceService,
+    WalletSignalExtractor,
+    TreasurySignalExtractor,
     // Analyzers
     BehaviourAnalyzer,
     CashflowAnalyzer,
@@ -75,6 +81,8 @@ import { SnapshotService } from './profiles/snapshot.service';
     SavingsContributionListener,
     TransactionFailedListener,
     InactiveUserListener,
+    WalletIntelligenceListener,
+    TreasuryIntelligenceListener,
   ],
   exports: [IntelligenceEngineService, EconomicProfileService, SnapshotService],
 })

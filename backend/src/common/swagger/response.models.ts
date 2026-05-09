@@ -19,6 +19,8 @@ export class UserDto {
 export class AuthResponseDto {
   @ApiProperty({ type: UserDto }) user: UserDto;
   @ApiProperty({ example: 'eyJhbGciOiJIUzI1NiJ9...' }) accessToken: string;
+  @ApiProperty({ example: 'eyJhbGciOiJIUzI1NiJ9...' }) refreshToken: string;
+  @ApiProperty({ example: 900, description: 'Access token TTL in seconds' }) expiresIn: number;
 }
 
 export class TrustScoreDto {
