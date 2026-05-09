@@ -4,6 +4,8 @@ import UpdateNotification from "./update-notification";
 import { AuthProvider } from "@/src/context/AuthContext";
 import { Analytics } from "@vercel/analytics/next"
 
+
+
 export const metadata: Metadata = {
   title: "Signal OS",
   description: "Turn your daily trade into financial power",
@@ -14,6 +16,9 @@ export const metadata: Metadata = {
   },
 };
 
+
+
+
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -21,6 +26,9 @@ export const viewport: Viewport = {
   userScalable: false,
   themeColor: "#111111",
 };
+
+
+
 
 export default function RootLayout({
   children,
