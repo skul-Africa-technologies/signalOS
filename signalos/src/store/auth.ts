@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { login, signup, logout as apiLogout, AuthResponse, User } from '../api/auth'
 
-interface AuthState {
+export interface AuthState {
   user: User | null
   accessToken: string | null
   loading: boolean
