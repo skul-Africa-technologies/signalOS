@@ -32,7 +32,7 @@ export default function LandingPage() {
     <div className="flex flex-col min-h-screen bg-bg px-5 justify-center items-center">
       <div className="w-full max-w-sm text-center">
         <h1 className="text-3xl font-medium tracking-tight text-text-1 mb-3">
-          Kora OS
+          signal OS
         </h1>
         <p className="text-text-2 mb-12">
           Turn your daily trade into financial power
