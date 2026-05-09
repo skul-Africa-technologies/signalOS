@@ -151,7 +151,7 @@ export class PayoutService {
       });
 
       this.logger.log(`Squad transfer initiated: ref=${payout.reference}`);
-    } catch (err) {
+    } catch (err: any) {
       this.logger.error(`Squad transfer error: ${err.message}`);
       // Mark withdrawal as failed and refund wallet
       await this.handlePayoutFailure(userId, withdrawalId, dto.amount, err.message);

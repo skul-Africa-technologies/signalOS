@@ -19,6 +19,7 @@ import { IntelligenceEngineModule } from './modules/intelligence-engine/intellig
 import { LedgerModule } from './modules/ledger/ledger.module';
 import { WalletModule } from './modules/wallet/wallet.module';
 import { PayoutModule } from './modules/payout/payout.module';
+import { CooperativeModule } from './modules/cooperative/cooperative.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { PayoutModule } from './modules/payout/payout.module';
     LedgerModule,
     WalletModule,
     PayoutModule,
+    CooperativeModule,
   ],
 })
 export class AppModule {}
