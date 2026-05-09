@@ -1,0 +1,22 @@
+{
+  "name": "Kora OS",
+  "short_name": "Kora",
+  "description": "Turn your daily trade into financial power",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f2f2f0",
+  "theme_color": "#111111",
+  "icons": [
+    {
+      "src": "/icons/logo.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/icons/logo.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
