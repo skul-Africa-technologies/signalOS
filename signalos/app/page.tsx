@@ -24,13 +24,14 @@ export default function LandingPage() {
       if (stored) {
         const data = JSON.parse(stored)
         if (data?.state?.completed) {
-          router.replace("/app/home")
+          // Use window.location for redirect to avoid router initialization issues
+          window.location.href = "/app/home"
         }
       }
     } catch (e) {
       // Ignore parse errors
     }
-  }, [router])
+  }, [])
 
   useEffect(() => {
     const handler = (e: Event) => {
