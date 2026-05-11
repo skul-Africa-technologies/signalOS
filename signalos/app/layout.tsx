@@ -4,8 +4,7 @@ import UpdateNotification from "./update-notification";
 import { AuthProvider } from "@/src/context/AuthContext";
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
-
-
+import { AuthLoaderWrapper } from "@/src/components/AuthLoaderWrapper"
 
 export const metadata: Metadata = {
   title: "Signal OS",
@@ -18,8 +17,6 @@ export const metadata: Metadata = {
 };
 
 
-
-
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -27,8 +24,6 @@ export const viewport: Viewport = {
   userScalable: false,
   themeColor: "#111111",
 };
-
-
 
 
 export default function RootLayout({
@@ -41,8 +36,9 @@ export default function RootLayout({
       <head />
       <body className="min-h-full bg-bg text-text-1 font-sans antialiased">
         <AuthProvider>
-          <UpdateNotification />
-          {children}
+          <AuthLoaderWrapper>
+            {children}
+          </AuthLoaderWrapper>
         </AuthProvider>
         <Analytics />
         <SpeedInsights />
