@@ -139,7 +139,16 @@ export async function getFinancialAnalytics(): Promise<{
   netFlow: number
   averageTransaction: number
 }> {
-  const response = await api.get(`${PAYMENTS_ENDPOINT}/analytics`)
+  const response = await api.get<{
+    totalCredits: number
+    totalDebits: number
+    totalWithdrawals: number
+    totalPayouts: number
+    successfulPayments: number
+    failedPayments: number
+    netFlow: number
+    averageTransaction: number
+  }>(`${PAYMENTS_ENDPOINT}/analytics`)
 
   if (!response.success || !response.data) {
     throw new Error(response.error?.message || 'Failed to fetch financial analytics')
