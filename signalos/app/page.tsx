@@ -75,6 +75,13 @@ export default function LandingPage() {
             </button>
 
             <button
+              onClick={() => router.push("/login")}
+              className="w-full h-11 border border-border rounded-lg text-sm font-medium mb-3"
+            >
+              Login
+            </button>
+
+            <button
               onClick={handleInstall}
               disabled={!canInstall}
               className="w-full h-11 border border-border rounded-lg text-sm font-medium"

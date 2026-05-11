@@ -129,6 +129,13 @@ export default function OnboardingPage() {
         >
           {step < 4 ? "Continue" : "Go to my dashboard"}
         </button>
+
+        <p className="text-sm text-text-2 text-center mt-4">
+          Already have an account?{" "}
+          <a href="/login" className="font-medium text-primary hover:underline">
+            Login
+          </a>
+        </p>
       </div>
     </div>
   )
