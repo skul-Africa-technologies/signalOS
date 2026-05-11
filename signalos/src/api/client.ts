@@ -18,6 +18,24 @@ if (!API_BASE_URL) {
 }
 
 /**
+ * Token retrieval - reads from localStorage on each request
+ * to ensure fresh token after hydration/login
+ */
+function getToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const stored = localStorage.getItem('signal-auth');
+    if (stored) {
+      const authData = JSON.parse(stored);
+      return authData.state?.accessToken ?? authData.accessToken ?? null;
+    }
+  } catch (error) {
+    console.error('Failed to parse auth token:', error);
+  }
+  return null;
+}
+
+/**
  * Custom event for cross-component auth invalidation
  */
 export const AUTH_INVALIDATED = 'auth:invalidated';
@@ -26,7 +44,9 @@ export const AUTH_INVALIDATED = 'auth:invalidated';
  * Dispatch event to notify all components of auth invalidation
  */
 function dispatchAuthInvalidated(): void {
-  window.dispatchEvent(new Event(AUTH_INVALIDATED));
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(AUTH_INVALIDATED));
+  }
 }
 
 /**
@@ -40,8 +60,10 @@ function parseApiError(response: Response): ApiError {
     error: 'Unknown error',
   };
 
-  // Try to parse JSON error body
-  response.json?.().then((data) => {
+  // Note: response.json() is async, but we're in a sync context
+  // The error object will be populated if the response has JSON body
+  // For now, we use default error messages
+  void response.json().then((data) => {
     if (data?.message) error.message = data.message;
     if (data?.error) error.error = data.error;
   }).catch(() => {
@@ -83,19 +105,8 @@ async function request<T>(
 ): Promise<ApiResponse<T>> {
   const url = `${API_BASE_URL}${endpoint}`;
 
-  // Get token from localStorage for SSR compatibility during hydration
-  let token: string | null = null;
-  if (typeof window !== 'undefined') {
-    try {
-      const stored = localStorage.getItem('signal-auth');
-      if (stored) {
-        const authData = JSON.parse(stored);
-        token = authData.accessToken ?? null;
-      }
-    } catch (error) {
-      console.error('Failed to parse auth token:', error);
-    }
-  }
+  // Get fresh token for each request
+  const token = getToken();
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',

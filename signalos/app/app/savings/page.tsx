@@ -1,6 +1,10 @@
 "use client"
 
+import { useRecommendations } from "@/src/hooks/useRecommendations"
+
 export default function SavingsPage() {
+  const { summary, recommendations, loading, error } = useRecommendations()
+  
   const groups = [
     { id: "1", name: "Market Women Cooperative", members: 12, contribution: 5000 },
     { id: "2", name: "Wuse Traders Circle", members: 8, contribution: 10000 },
@@ -22,7 +26,62 @@ export default function SavingsPage() {
 
   return (
     <div className="pt-6 pb-4 space-y-8">
-      <h1 className="text-lg font-medium tracking-[-0.01em]">Savings</h1>
+      <h1 className="text-lg font-medium tracking-[-0.01em]">Savings & Growth</h1>
+
+      {/* AI Recommendation Intelligence Section */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-medium tracking-[-0.01em]">Financial Intelligence</h2>
+        {loading ? (
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+            <div className="h-6 bg-tag-bg rounded animate-pulse mb-2" />
+            <div className="h-4 bg-tag-bg rounded animate-pulse mb-2" />
+            <div className="h-4 bg-tag-bg rounded animate-pulse" />
+          </div>
+        ) : error ? (
+          <p className="text-sm text-destructive">{error}</p>
+        ) : summary ? (
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-4">
+            {/* Eligibility Intelligence */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-text-2">Loan Eligibility</span>
+                <span className={`text-sm font-medium px-2 py-0.5 rounded-full ${
+                  summary.eligibility.eligible ? 'bg-green-100 text-green-700' : 'bg-tag-bg text-text-2'
+                }`}>
+                  {summary.eligibility.eligible ? 'Eligible' : 'Not Eligible'}
+                </span>
+              </div>
+              {summary.eligibility.eligible && (
+                <div className="text-center py-2">
+                  <p className="text-[10px] text-text-2 uppercase tracking-wide">Eligible Amount</p>
+                  <p className="text-2xl font-medium">₦{summary.eligibility.eligibleAmount.toLocaleString()}</p>
+                </div>
+              )}
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-text-2">Trust Score</span>
+                <span className="font-medium">{summary.eligibility.trustScore}/100</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-text-2">Risk Level</span>
+                <span className={`font-medium ${
+                  summary.eligibility.riskLevel === 'Low' ? 'text-green-600' : 
+                  summary.eligibility.riskLevel === 'Medium' ? 'text-yellow-600' : 'text-red-600'
+                }`}>
+                  {summary.eligibility.riskLevel}
+                </span>
+              </div>
+            </div>
+
+            {/* High Priority Recommendations */}
+            {recommendations.filter(r => r.priority === 'high').map((rec, i) => (
+              <div key={i} className="bg-tag-bg rounded-lg p-3">
+                <p className="text-sm font-medium">{rec.title}</p>
+                <p className="text-xs text-text-2 mt-1">{rec.description}</p>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </section>
 
       <section className="space-y-3">
         <h2 className="text-sm font-medium tracking-[-0.01em]">Join a group</h2>

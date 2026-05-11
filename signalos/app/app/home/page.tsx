@@ -1,29 +1,26 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useOnboardingStore } from "@/src/store"
-import { getBalance, getTransactions } from "@/src/api/wallet"
+import { useWallet } from "@/src/hooks/useWallet"
 import { getTrustScore } from "@/src/api/trust"
-import type { Transaction } from "@/src/api/wallet"
+import { useOnboardingStore } from "@/src/store"
+import { useState, useEffect } from "react"
 
 export default function HomePage() {
   const { name, location } = useOnboardingStore()
-  const [balance, setBalance] = useState(0)
-  const [earnings, setEarnings] = useState(0)
-  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const { balance, transactions, loading: walletLoading, error: walletError } = useWallet()
   const [trustScore, setTrustScore] = useState(0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const loadData = async () => {
-      const bal = await getBalance()
-      const txns = await getTransactions()
-      const score = await getTrustScore()
-      setBalance(bal.balance)
-      setEarnings(bal.earningsToday)
-      setTransactions(txns)
-      setTrustScore(score)
-      setLoading(false)
+      try {
+        const score = await getTrustScore()
+        setTrustScore(score)
+      } catch (err) {
+        console.error('Failed to load trust score:', err)
+      } finally {
+        setLoading(false)
+      }
     }
     loadData()
   }, [])
@@ -33,6 +30,18 @@ export default function HomePage() {
     if (hour < 12) return "Good morning"
     if (hour < 18) return "Good afternoon"
     return "Good evening"
+  }
+
+  // Combined loading state
+  const isLoading = walletLoading || loading
+
+  // Error state
+  if (walletError) {
+    return (
+      <div className="pt-6 pb-4">
+        <p className="text-sm text-destructive text-center">{walletError}</p>
+      </div>
+    )
   }
 
   return (
@@ -47,8 +56,14 @@ export default function HomePage() {
       <div className="bg-surface border border-border rounded-xl p-4">
         <div className="space-y-1 mb-4">
           <p className="text-sm text-text-2">Balance</p>
-          <p className="text-2xl font-medium tracking-[-0.01em]">₦{balance.toLocaleString()}.00</p>
-          <p className="text-xs text-text-2">Today: ₦{earnings.toLocaleString()}</p>
+          {isLoading ? (
+            <div className="h-8 bg-tag-bg rounded animate-pulse mb-2" />
+          ) : (
+            <p className="text-2xl font-medium tracking-[-0.01em]">₦{balance?.balance.toLocaleString() ?? '0'}.00</p>
+          )}
+          <p className="text-xs text-text-2">
+            Today: ₦{balance?.availableBalance.toLocaleString() ?? '0'}
+          </p>
         </div>
         <div className="flex gap-2">
           <button className="flex-1 h-10 border border-border rounded-lg text-sm font-medium">
@@ -88,8 +103,12 @@ export default function HomePage() {
       <div className="space-y-2">
         <h2 className="text-sm font-medium tracking-[-0.01em]">Activity</h2>
         <div className="space-y-2">
-          {loading ? (
-            <div className="h-12 bg-tag-bg rounded-lg animate-pulse" />
+          {isLoading ? (
+            Array(3).fill(0).map((_, i) => (
+              <div key={i} className="h-12 bg-tag-bg rounded-lg animate-pulse" />
+            ))
+          ) : transactions.length === 0 ? (
+            <p className="text-sm text-text-2 text-center py-4">No transactions yet</p>
           ) : (
             transactions.slice(0, 3).map((txn) => (
               <div key={txn.id} className="flex justify-between items-center py-2 border-b border-border last:border-0">
@@ -97,7 +116,9 @@ export default function HomePage() {
                   <p className="text-sm">{txn.name}</p>
                   <p className="text-xs text-text-2">{txn.time}</p>
                 </div>
-                <span className="text-sm font-medium">₦{txn.amount.toLocaleString()}</span>
+                <span className={`text-sm font-medium ${txn.amount >= 0 ? 'text-green-500' : 'text-text-1'}`}>
+                  ₦{Math.abs(txn.amount).toLocaleString()}
+                </span>
               </div>
             ))
           )}
