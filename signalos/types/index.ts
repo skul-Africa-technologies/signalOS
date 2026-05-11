@@ -1,5 +1,3 @@
-// Centralized TypeScript types for the entire application
-
 /**
  * Business type enumeration matching backend enum
  */
@@ -11,6 +9,226 @@ export enum BusinessType {
   FARMER = 'FARMER',
   RETAILER = 'RETAILER',
   WHOLER = 'WHOLER',
+}
+
+/**
+ * Payment status enumeration
+ */
+export enum PaymentStatus {
+  PENDING = 'pending',
+  PROCESSING = 'processing',
+  SUCCESS = 'success',
+  FAILED = 'failed',
+  CANCELLED = 'cancelled',
+  REFUNDED = 'refunded',
+  EXPIRED = 'expired',
+}
+
+/**
+ * Transaction lifecycle stages
+ */
+export enum TransactionLifecycle {
+  INITIATED = 'initiated',
+  PENDING = 'pending',
+  PROCESSING = 'processing',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+  REVERSED = 'reversed',
+  REFUNDED = 'refunded',
+  SETTLED = 'settled',
+}
+
+/**
+ * Payout status enumeration
+ */
+export enum PayoutStatus {
+  PENDING = 'pending',
+  PROCESSING = 'processing',
+  SUCCESS = 'success',
+  FAILED = 'failed',
+  CANCELLED = 'cancelled',
+}
+
+/**
+ * Withdrawal status enumeration
+ */
+export enum WithdrawalStatus {
+  PENDING = 'pending',
+  PROCESSING = 'processing',
+  SUCCESS = 'success',
+  FAILED = 'failed',
+  CANCELLED = 'cancelled',
+  REJECTED = 'rejected',
+}
+
+/**
+ * Webhook event types
+ */
+export enum WebhookEventType {
+  CHARGE_COMPLETED = 'charge_completed',
+  CHARGE_FAILED = 'charge_failed',
+  CHARGE_REFUNDED = 'charge_refunded',
+  PAYOUT_COMPLETED = 'payout_completed',
+  PAYOUT_FAILED = 'payout_failed',
+  WITHDRAWAL_COMPLETED = 'withdrawal_completed',
+  WITHDRAWAL_FAILED = 'withdrawal_failed',
+  TRUST_SCORE_UPDATED = 'trust_score_updated',
+}
+
+/**
+ * Bank code mapping for Nigerian banks
+ */
+export const BANK_CODES: Record<string, { code: string; name: string }> = {
+  '044': { code: '044', name: 'Access Bank' },
+  '011': { code: '011', name: 'First Bank' },
+  '214': { code: '214', name: 'First City Monument Bank (FCMB)' },
+  '058': { code: '058', name: 'Guaranty Trust Bank (GTB)' },
+  '033': { code: '033', name: 'United Bank for Africa (UBA)' },
+  '215': { code: '215', name: 'Unity Bank' },
+  '221': { code: '221', name: 'Stanbic IBTC Bank' },
+  '076': { code: '076', name: 'Polaris Bank' },
+  '050': { code: '050', name: 'Ecobank Nigeria' },
+  '030': { code: '030', name: 'Heritage Bank' },
+  '035': { code: '035', name: 'Wema Bank' },
+  '232': { code: '232', name: 'Sterling Bank' },
+  '032': { code: '032', name: 'Union Bank' },
+  '082': { code: '082', name: 'Keystone Bank' },
+  '070': { code: '070', name: 'Fidelity Bank' },
+  '214': { code: '214', name: 'Fidelity Bank (Alternative)' },
+  '084': { code: '084', name: 'Enterprise Bank' },
+  '301': { code: '301', name: 'Jaiz Bank' },
+  '309': { code: '309', name: 'FSDH Merchant Bank' },
+  '014': { code: '014', name: 'Providus Bank' },
+  '101': { code: '101', name: 'Globus Bank' },
+  '216': { code: '216', name: 'Greenwich Trust' },
+  '057': { code: '057', name: 'Zenith Bank' },
+  '070': { code: '070', name: 'Fidelity Bank' },
+}
+
+/**
+ * Payment session - returned when initiating a Squad payment
+ */
+export interface PaymentSession {
+  reference: string;
+  checkoutUrl: string;
+  squadResponse: Record<string, unknown>;
+  amount: number;
+  email: string;
+  status: PaymentStatus;
+  createdAt: string;
+}
+
+/**
+ * Payment transaction record
+ */
+export interface PaymentTransaction {
+  id: string;
+  reference: string;
+  merchantReference: string;
+  amount: number;
+  currency: string;
+  status: PaymentStatus;
+  transactionLifecycle: TransactionLifecycle;
+  paymentMethod: string;
+  email: string;
+  squadTransactionRef: string | null;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+}
+
+/**
+ * Withdrawal request payload
+ */
+export interface WithdrawalRequest {
+  amount: number;
+  bankCode: string;
+  accountNumber: string;
+  accountName: string;
+  narration?: string;
+}
+
+/**
+ * Withdrawal record
+ */
+export interface Withdrawal {
+  id: string;
+  userId: string;
+  amount: number;
+  bankCode: string;
+  accountNumber: string;
+  accountName: string;
+  narration: string;
+  status: WithdrawalStatus;
+  reference: string;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+}
+
+/**
+ * Payout record
+ */
+export interface Payout {
+  id: string;
+  userId: string;
+  amount: number;
+  status: PayoutStatus;
+  reference: string;
+  type: 'auto' | 'manual';
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+}
+
+/**
+ * Webhook event structure
+ */
+export interface WebhookEvent {
+  event: WebhookEventType;
+  body: WebhookBody;
+}
+
+export interface WebhookBody {
+  transaction_ref: string;
+  merchant_ref: string;
+  transaction_status: 'success' | 'failed' | 'pending';
+  amount: number;
+  [key: string]: unknown;
+}
+
+/**
+ * Financial analytics summary
+ */
+export interface FinancialAnalytics {
+  totalCredits: number;
+  totalDebits: number;
+  totalWithdrawals: number;
+  totalPayouts: number;
+  successfulPayments: number;
+  failedPayments: number;
+  netFlow: number;
+  averageTransaction: number;
+}
+
+/**
+ * Payment form validation errors
+ */
+export interface PaymentFormErrors {
+  amount?: string;
+  bankCode?: string;
+  accountNumber?: string;
+  accountName?: string;
+  general?: string;
+}
+
+/**
+ * Withdrawal validation result
+ */
+export interface WithdrawalValidation {
+  valid: boolean;
+  errors: PaymentFormErrors;
 }
 
 /**
