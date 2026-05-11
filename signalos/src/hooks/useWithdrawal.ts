@@ -17,7 +17,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { useAuth } from "@/src/context/AuthContext"
 import { useWallet } from "@/src/hooks/useWallet"
 import { requestWithdrawal, validateWithdrawal } from "@/src/api/payment.service"
-import type { WithdrawalRequest, WithdrawalValidation, WithdrawalStatus } from "@/types"
+import { WithdrawalRequest, WithdrawalValidation, WithdrawalStatus } from "@/types"
 
 interface UseWithdrawalReturn {
   // Form state
@@ -204,14 +204,14 @@ export function useWithdrawal(initialBalance: number = 0): UseWithdrawalReturn {
       await requestWithdrawal(payload)
 
       setSuccess(true)
-      setLastWithdrawal({
-        id: requestRef,
-        reference: requestRef,
-        ...payload,
-        status: "processing",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      })
+       setLastWithdrawal({
+         id: requestRef,
+         reference: requestRef,
+         ...payload,
+         status: WithdrawalStatus.PROCESSING,
+         createdAt: new Date().toISOString(),
+         updatedAt: new Date().toISOString(),
+       })
 
       // Refresh wallet balance to reflect the pending withdrawal
       refetchWallet()
