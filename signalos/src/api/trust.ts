@@ -1,4 +1,4 @@
-// Mock data for trust
+// Mock data for trust score breakdown
 interface ScoreBreakdownItem {
   label: string
   score: number
@@ -12,31 +12,30 @@ const mockScoreBreakdown: ScoreBreakdownItem[] = [
   { label: 'Risk level', score: 25, description: 'Low risk' },
 ]
 
+/**
+ * MOCK: Get trust score
+ * Development-only mock - replace with real API call
+ */
 export async function getTrustScore(): Promise<number> {
-  console.log('trust.getTrustScore')
+  console.log('trust.getTrustScore (MOCK)')
   await new Promise(r => setTimeout(r, 400))
   return 74
 }
 
+/**
+ * MOCK: Get score breakdown
+ * Development-only mock - replace with real API call
+ */
 export async function getScoreBreakdown(): Promise<ScoreBreakdownItem[]> {
-  console.log('trust.getScoreBreakdown')
+  console.log('trust.getScoreBreakdown (MOCK)')
   await new Promise(r => setTimeout(r, 400))
   return mockScoreBreakdown
 }
 
-export async function getLoanEligibility(): Promise<{ eligible: boolean; amount: number; term: string; interest: string }> {
-  console.log('trust.getLoanEligibility')
-  await new Promise(r => setTimeout(r, 400))
-  return {
-    eligible: true,
-    amount: 50000,
-    term: '90 days',
-    interest: '5%',
-  }
-}
-
-export async function applyForLoan(): Promise<{ success: boolean; loanId: string }> {
-  console.log('trust.applyForLoan')
-  await new Promise(r => setTimeout(r, 400))
-  return { success: true, loanId: 'LN' + Date.now() }
-}
+/**
+ * NOTE: Loan eligibility and application now use the real API:
+ * - src/api/loan.service.ts
+ * - src/hooks/use-loans.ts
+ *
+ * These mock functions are deprecated. Use the real loan service instead.
+ */

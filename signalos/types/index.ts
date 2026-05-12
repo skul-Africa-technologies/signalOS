@@ -330,7 +330,7 @@ export interface Transaction {
 /**
  * Risk level for trust scoring
  */
-export type RiskLevel = 'Low' | 'Medium' | 'High'
+export type RiskLevel = 'Low' | 'Medium' | 'High' | 'Very High'
 
 /**
  * Trust score breakdown factors
@@ -394,16 +394,6 @@ export interface RecommendationSummary {
 }
 
 /**
- * Trust score report from GET /api/v1/trust-score
- */
-export interface TrustScoreReport {
-  trustScore: number;
-  riskLevel: RiskLevel;
-  reasons: string[];
-  breakdown: TrustScoreBreakdown;
-}
-
-/**
  * Transaction record from GET /api/v1/transactions
  */
 export interface TransactionRecord {
@@ -448,4 +438,80 @@ export interface OnboardingState {
 export interface ApiClientConfig {
   baseUrl: string;
   token?: string | null;
+}
+
+/**
+ * ===========================================
+ * LOAN INFRASTRUCTURE TYPES
+ * Behavioral Credit Scoring & Microfinance
+ * ===========================================
+ */
+
+/**
+ * Loan lifecycle status
+ */
+export type LoanLifecycleStatus = 'PENDING' | 'APPROVED' | 'DISBURSED' | 'REPAID' | 'DEFAULTED' | 'CANCELLED'
+
+/**
+ * Behavioral breakdown for credit scoring (matches TrustScoreBreakdown)
+ */
+export interface BehaviorBreakdown {
+  transactionConsistency: number  // 0-100
+  paymentFrequency: number        // 0-100
+  savingsReliability: number      // 0-100
+  activityLevel: number           // 0-100
+}
+
+/**
+ * Loan eligibility result from evaluation endpoint
+ */
+export interface LoanEligibility {
+  eligible: boolean
+  eligibleAmount: number
+  riskLevel: RiskLevel
+  recommendation: string
+  trustScore: number
+  breakdown: BehaviorBreakdown
+  reasons: string[]
+}
+
+/**
+ * Loan disbursement record
+ */
+export interface LoanDisbursement {
+  id: string
+  userId: string
+  walletId: string
+  amount: number
+  reference: string
+  status: LoanLifecycleStatus
+  loanTermDays: number
+  dueDate: string
+  disbursedAt: string
+  createdAt: string
+  updatedAt: string
+  riskLevelAtApproval: RiskLevel
+  trustScoreAtApproval: number
+}
+
+/**
+ * Disbursement history response
+ */
+export interface DisbursementHistory {
+  disbursements: LoanDisbursement[]
+  totalCount: number
+  totalAmount: number
+}
+
+/**
+ * Disbursement validation result
+ */
+export interface DisbursementValidation {
+  valid: boolean
+  errors: {
+    amount?: string
+    eligibility?: string
+    duplicate?: string
+    general?: string
+  }
 }

@@ -10,10 +10,14 @@
 
 /* eslint-disable react-hooks/set-state-in-effect */
 
+
+
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/src/context/AuthContext'
 import { getWallet, getWalletBalance, getWalletLedger } from '@/src/api/wallet.service'
 import type { Wallet, WalletBalance, LedgerEntry, Transaction } from '@/types'
+
+
 
 interface UseWalletReturn {
   wallet: Wallet | null
@@ -48,6 +52,8 @@ export function useWallet(): UseWalletReturn {
   const [error, setError] = useState<string | null>(null)
   const lastFetchKey = useRef<string>('')
 
+
+
   // Derive loading state from initial mount + conditions
   const isLoading = !isHydrated || !isAuthenticated
 
@@ -77,6 +83,8 @@ export function useWallet(): UseWalletReturn {
         setLedger(ledgerData)
         setTransactions(ledgerToTransactions(ledgerData))
       })
+
+
       .catch((err) => {
         const message = err instanceof Error ? err.message : 'Failed to load wallet data'
         setError(message)
@@ -84,9 +92,13 @@ export function useWallet(): UseWalletReturn {
       })
   }, [isHydrated, isAuthenticated])
 
+
+
   const refetch = () => {
     lastFetchKey.current = ''
   }
+
+
 
   return {
     wallet,
@@ -97,4 +109,6 @@ export function useWallet(): UseWalletReturn {
     error,
     refetch,
   }
+
+  
 }

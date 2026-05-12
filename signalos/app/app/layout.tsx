@@ -4,13 +4,14 @@ import { ReactNode } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/src/context/AuthContext"
-import { Home, Send, BarChart3, PiggyBank, User } from "lucide-react"
+import { Home, Send, BarChart3, PiggyBank, DollarSign, User } from "lucide-react"
 
 const tabs = [
   { href: "/app/home", label: "Home", icon: Home },
   { href: "/app/payments", label: "Payments", icon: Send },
   { href: "/app/business", label: "Business", icon: BarChart3 },
   { href: "/app/savings", label: "Savings", icon: PiggyBank },
+  { href: "/app/loans", label: "Loans", icon: DollarSign },
   { href: "/app/profile", label: "Profile", icon: User },
 ]
 
