@@ -36,6 +36,41 @@ Organization Onboarded → API Key Issued
 
 ---
 
+### Phase 1 — Full Financial Lifecycle (Repayment + Notifications + Scheduled Intelligence)
+
+\`\`\`
+Loan Disbursed
+  → Repayment Schedule Generated (weekly/monthly installments)
+  → Due Date Reminder Sent (D-1 notification)
+  → User Repays Installment
+      → Wallet Debited (atomic $transaction)
+      → Ledger Entry Appended (immutable)
+      → Treasury Replenished
+      → Trust Score Recalculated
+      → Notification Sent (in-app + SMS)
+  → Overdue Detection (daily cron, grace period 3 days)
+      → Penalty Applied (0.1%/day)
+      → Trust Degraded
+      → Overdue Alert Sent
+  → Default Detection (90-day threshold)
+      → Loan Marked DEFAULTED
+      → Trust Severely Degraded
+\`\`\`
+
+**Scheduled Intelligence Engine (Autonomous)**
+| Job | Schedule | Purpose |
+|---|---|---|
+| Overdue scan | Daily 02:00 UTC | Mark overdue schedules, apply penalties |
+| Default scan | Daily 03:00 UTC | Detect and mark defaulted loans |
+| Repayment reminders | Daily 04:00 UTC | SMS/in-app for due-tomorrow installments |
+| Trust decay | Daily 05:00 UTC | Recalculate trust for 30-day inactive users |
+| Intelligence snapshots | Weekly Mon 06:00 | Full behavioural re-analysis for all users |
+| Treasury health | Weekly Mon 07:00 | Cooperative sustainability evaluation |
+| Monthly analytics | 1st of month 08:00 | Platform-wide aggregation |
+| Trust evolution | 1st of month 09:00 | Full trust re-analysis for active users |
+
+---
+
 ### Full Financial Operating Pipeline
 
 \`\`\`
@@ -123,6 +158,8 @@ Obtain a token via \`POST /auth/login\` and click **Authorize** above.
     .addTag('External API — Consent', 'User consent grants: authorize, list, and revoke organization access')
     .addTag('External Intelligence APIs', 'Behavioral financial intelligence APIs: trust score, identity, loan eligibility, cooperative health, activity, fraud')
     .addTag('External API — Webhooks', 'Subscribe to real-time financial intelligence events with HMAC-signed payloads')
+    .addTag('Repayment', 'Loan repayment lifecycle: schedule generation, installment processing, overdue detection, default engine, repayment intelligence')
+    .addTag('Notifications', 'Event-driven notification delivery: in-app, email, SMS, and user preference management')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

@@ -700,3 +700,112 @@ model OrganizationUsageMetrics {
   @@index([date])
   @@map("organization_usage_metrics")
 }
+
+// ─── Repayment Infrastructure ─────────────────────────────────────────────────
+
+model LoanRepaymentSchedule {
+  id                 String                 @id @default(cuid())
+  loanId             String
+  installmentNumber  Int
+  amountDue          Float
+  principalAmount    Float
+  interestAmount     Float
+  penaltyAmount      Float                  @default(0)
+  dueDate            DateTime
+  paidAt             DateTime?
+  status             RepaymentScheduleStatus @default(PENDING)
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  repayments         LoanRepayment[]
+
+  @@index([loanId])
+  @@index([dueDate])
+  @@index([status])
+  @@map("loan_repayment_schedules")
+}
+
+enum RepaymentScheduleStatus {
+  PENDING
+  PAID
+  OVERDUE
+  MISSED
+  PARTIAL
+}
+
+model LoanRepayment {
+  id                   String   @id @default(cuid())
+  loanId               String
+  repaymentScheduleId  String
+  walletId             String
+  amountPaid           Float
+  paymentReference     String   @unique
+  paymentMethod        String   @default("wallet")
+  paidAt               DateTime @default(now())
+  createdAt            DateTime @default(now())
+
+  schedule             LoanRepaymentSchedule @relation(fields: [repaymentScheduleId], references: [id], onDelete: Cascade)
+
+  @@index([loanId])
+  @@index([repaymentScheduleId])
+  @@map("loan_repayments")
+}
+
+// ─── Notification Infrastructure ─────────────────────────────────────────────
+
+model Notification {
+  id        String             @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  channel   NotificationChannel
+  status    NotificationStatus @default(PENDING)
+  metadata  Json?
+  readAt    DateTime?
+  createdAt DateTime           @default(now())
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  PAYMENT_SUCCESS
+  LOAN_APPROVED
+  REPAYMENT_DUE
+  REPAYMENT_OVERDUE
+  TRUST_SCORE_CHANGED
+  WITHDRAWAL_SUCCESS
+  SAVINGS_REMINDER
+  FRAUD_ALERT
+  TREASURY_ALERT
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  READ
+}
+
+model NotificationPreference {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  emailEnabled Boolean  @default(true)
+  smsEnabled   Boolean  @default(true)
+  inAppEnabled Boolean  @default(true)
+  mutedTypes   String[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("notification_preferences")
+}
+

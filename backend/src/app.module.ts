@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ScheduleModule } from '@nestjs/schedule';
 import { appConfig, databaseConfig, jwtConfig, squadConfig } from './config/configuration';
 import { envValidationSchema } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
@@ -21,6 +22,9 @@ import { WalletModule } from './modules/wallet/wallet.module';
 import { PayoutModule } from './modules/payout/payout.module';
 import { CooperativeModule } from './modules/cooperative/cooperative.module';
 import { ExternalApiModule } from './modules/external-api/external-api.module';
+import { RepaymentModule } from './modules/repayment/repayment.module';
+import { NotificationModule } from './modules/notification/notification.module';
+import { ScheduledJobsModule } from './modules/scheduled-jobs/scheduled-jobs.module';
 
 @Module({
   imports: [
@@ -31,6 +35,7 @@ import { ExternalApiModule } from './modules/external-api/external-api.module';
       validationOptions: { abortEarly: true },
     }),
     EventEmitterModule.forRoot(),
+    ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
     UsersModule,
@@ -49,6 +54,9 @@ import { ExternalApiModule } from './modules/external-api/external-api.module';
     PayoutModule,
     CooperativeModule,
     ExternalApiModule,
+    RepaymentModule,
+    NotificationModule,
+    ScheduledJobsModule,
   ],
 })
 export class AppModule {}
