@@ -20,6 +20,7 @@ import { LedgerModule } from './modules/ledger/ledger.module';
 import { WalletModule } from './modules/wallet/wallet.module';
 import { PayoutModule } from './modules/payout/payout.module';
 import { CooperativeModule } from './modules/cooperative/cooperative.module';
+import { ExternalApiModule } from './modules/external-api/external-api.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { CooperativeModule } from './modules/cooperative/cooperative.module';
     WalletModule,
     PayoutModule,
     CooperativeModule,
+    ExternalApiModule,
   ],
 })
 export class AppModule {}

@@ -31,6 +31,7 @@ model User {
   intelligenceSnapshots IntelligenceSnapshot[]
   wallet              Wallet?
   refreshSessions     RefreshSession[]
+  consentGrants       ConsentGrant[]
 
   @@map("users")
 }
@@ -545,4 +546,157 @@ model TreasurySnapshot {
   @@index([groupId])
   @@index([createdAt])
   @@map("treasury_snapshots")
+}
+
+// ─── External API Infrastructure ─────────────────────────────────────────────
+
+model Organization {
+  id             String           @id @default(cuid())
+  name           String
+  type           OrgType
+  contactEmail   String           @unique
+  webhookUrl     String?
+  active         Boolean          @default(true)
+  allowedScopes  String[]
+  rateLimitTier  RateLimitTier    @default(FREE)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  apiKeys        ApiKey[]
+  webhookSubs    WebhookSubscription[]
+  auditLogs      ExternalAccessAuditLog[]
+  usageMetrics   OrganizationUsageMetrics[]
+  consentGrants  ConsentGrant[]
+
+  @@map("organizations")
+}
+
+enum OrgType {
+  BANK
+  FINTECH
+  MICROFINANCE
+  INSURER
+  EMPLOYER
+  NGO
+  MARKETPLACE
+  COOPERATIVE
+}
+
+enum RateLimitTier {
+  FREE
+  STARTER
+  GROWTH
+  BANK
+  ENTERPRISE
+}
+
+model ApiKey {
+  id             String       @id @default(cuid())
+  organizationId String
+  keyHash        String       @unique
+  label          String?
+  scopes         String[]
+  active         Boolean      @default(true)
+  lastUsedAt     DateTime?
+  expiresAt      DateTime?
+  createdAt      DateTime     @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("api_keys")
+}
+
+model ConsentGrant {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  scopes         String[]
+  purpose        String
+  expiresAt      DateTime
+  revoked        Boolean      @default(false)
+  revokedAt      DateTime?
+  createdAt      DateTime     @default(now())
+
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([organizationId])
+  @@map("consent_grants")
+}
+
+model WebhookSubscription {
+  id             String       @id @default(cuid())
+  organizationId String
+  url            String
+  events         String[]
+  secret         String
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deliveries     WebhookDelivery[]
+
+  @@index([organizationId])
+  @@map("webhook_subscriptions")
+}
+
+model WebhookDelivery {
+  id               String              @id @default(cuid())
+  subscriptionId   String
+  event            String
+  payload          Json
+  status           WebhookDeliveryStatus @default(PENDING)
+  attempts         Int                 @default(0)
+  lastAttemptAt    DateTime?
+  nextRetryAt      DateTime?
+  responseStatus   Int?
+  responseBody     String?
+  createdAt        DateTime            @default(now())
+
+  subscription     WebhookSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@index([status])
+  @@map("webhook_deliveries")
+}
+
+enum WebhookDeliveryStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  EXHAUSTED
+}
+
+model ExternalAccessAuditLog {
+  id             String       @id @default(cuid())
+  organizationId String
+  endpoint       String
+  userId         String?
+  scopesUsed     String[]
+  purpose        String?
+  ipAddress      String?
+  responseStatus Int
+  createdAt      DateTime     @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([createdAt])
+  @@map("external_access_audit_logs")
+}
+
+model OrganizationUsageMetrics {
+  id             String       @id @default(cuid())
+  organizationId String
+  date           DateTime
+  requestCount   Int          @default(0)
+  endpoint       String?
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([date])
+  @@map("organization_usage_metrics")
 }

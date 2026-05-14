@@ -11,6 +11,31 @@ An event-driven platform that converts behavioral financial activity into progra
 
 ---
 
+### External Financial Intelligence API (B2B)
+
+Organizations (banks, fintechs, MFIs, cooperatives) integrate via API key authentication to access consent-gated behavioral intelligence.
+
+\`\`\`
+Organization Onboarded → API Key Issued
+  → User Grants Consent (scoped)
+  → Organization Calls Intelligence API (x-api-key)
+  → ApiKeyGuard validates key + scopes
+  → RateLimitGuard enforces tier quota
+  → ConsentService verifies active user consent
+  → Intelligence Engine computes derived signals
+  → Response returned (no raw financial data)
+  → AuditLog written (immutable)
+  → Webhook emitted on score changes
+\`\`\`
+
+**Consent Scopes:** \`trust:read\` · \`identity:read\` · \`loan:read\` · \`cooperative:read\` · \`fraud:read\` · \`activity:read\`
+
+**Rate Limit Tiers:** FREE (100/day) · STARTER (1k) · GROWTH (10k) · BANK (50k) · ENTERPRISE (500k)
+
+**Webhook Security:** HMAC-SHA256 signed payloads · \`X-SignalOS-Signature\` header · Retry with exponential backoff (5 attempts)
+
+---
+
 ### Full Financial Operating Pipeline
 
 \`\`\`
@@ -80,6 +105,7 @@ Obtain a token via \`POST /auth/login\` and click **Authorize** above.
       { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', description: 'Enter JWT token from /auth/login' },
       'JWT',
     )
+    .addApiKey({ type: 'apiKey', in: 'header', name: 'x-api-key', description: 'Organization API key (sk_...)' }, 'x-api-key')
     .addTag('Authentication', 'User registration, login, and JWT issuance')
     .addTag('Users', 'Authenticated user profile retrieval')
     .addTag('Wallet', 'Programmable wallet: balances, credits, debits, and ledger history')
@@ -93,6 +119,10 @@ Obtain a token via \`POST /auth/login\` and click **Authorize** above.
     .addTag('Transactions', 'Transaction history and persistence')
     .addTag('Trust Scores', 'Behavioral trust scoring and risk assessment engine')
     .addTag('Recommendations', 'AI-driven financial opportunity recommendations')
+    .addTag('External API — Organizations', 'Onboard and manage external organizations (banks, fintechs, cooperatives)')
+    .addTag('External API — Consent', 'User consent grants: authorize, list, and revoke organization access')
+    .addTag('External Intelligence APIs', 'Behavioral financial intelligence APIs: trust score, identity, loan eligibility, cooperative health, activity, fraud')
+    .addTag('External API — Webhooks', 'Subscribe to real-time financial intelligence events with HMAC-signed payloads')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
