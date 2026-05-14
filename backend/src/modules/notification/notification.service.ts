@@ -95,7 +95,6 @@ export class NotificationService {
     });
   }
 
-  // ─── Channel Adapters ───────────────────────────────────────────────────────
 
   private async sendEmail(input: SendNotificationInput): Promise<void> {
     const user = await this.prisma.user.findUnique({ where: { id: input.userId }, select: { name: true, phone: true } });
