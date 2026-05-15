@@ -809,3 +809,115 @@ model NotificationPreference {
   @@map("notification_preferences")
 }
 
+
+// ─── Admin Infrastructure ─────────────────────────────────────────────────────
+
+model AdminUser {
+  id          String      @id @default(cuid())
+  email       String      @unique
+  passwordHash String
+  role        AdminRole   @default(SUPPORT_ADMIN)
+  permissions String[]
+  active      Boolean     @default(true)
+  lastLoginAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("admin_users")
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  OPERATIONS_ADMIN
+  TREASURY_ADMIN
+  FRAUD_ANALYST
+  SUPPORT_ADMIN
+  AUDITOR
+}
+
+// ─── Audit Infrastructure ─────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String        @id @default(cuid())
+  actorType  AuditActorType
+  actorId    String
+  action     String
+  entityType String?
+  entityId   String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime      @default(now())
+
+  @@index([actorId])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+enum AuditActorType {
+  USER
+  ADMIN
+  ORGANIZATION
+  SYSTEM
+}
+
+// ─── Reconciliation Infrastructure ───────────────────────────────────────────
+
+model ReconciliationJob {
+  id               String                  @id @default(cuid())
+  provider         String
+  startedAt        DateTime                @default(now())
+  completedAt      DateTime?
+  status           ReconciliationJobStatus @default(RUNNING)
+  mismatchesFound  Int                     @default(0)
+  resolvedCount    Int                     @default(0)
+  createdAt        DateTime                @default(now())
+
+  mismatches       ReconciliationMismatch[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("reconciliation_jobs")
+}
+
+enum ReconciliationJobStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+  PARTIAL
+}
+
+model ReconciliationMismatch {
+  id                  String              @id @default(cuid())
+  reconciliationJobId String
+  reference           String
+  mismatchType        MismatchType
+  internalValue       String?
+  externalValue       String?
+  status              MismatchStatus      @default(OPEN)
+  resolutionNotes     String?
+  createdAt           DateTime            @default(now())
+
+  job                 ReconciliationJob   @relation(fields: [reconciliationJobId], references: [id], onDelete: Cascade)
+
+  @@index([reconciliationJobId])
+  @@index([status])
+  @@map("reconciliation_mismatches")
+}
+
+enum MismatchType {
+  MISSING_TRANSACTION
+  DUPLICATE_TRANSACTION
+  AMOUNT_MISMATCH
+  STATUS_MISMATCH
+  LEDGER_INCONSISTENCY
+}
+
+enum MismatchStatus {
+  OPEN
+  RESOLVED
+  IGNORED
+  ESCALATED
+}

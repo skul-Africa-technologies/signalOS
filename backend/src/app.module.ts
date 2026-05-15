@@ -25,6 +25,9 @@ import { ExternalApiModule } from './modules/external-api/external-api.module';
 import { RepaymentModule } from './modules/repayment/repayment.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { ScheduledJobsModule } from './modules/scheduled-jobs/scheduled-jobs.module';
+import { AdminModule } from './modules/admin/admin.module';
+import { AuditModule } from './modules/audit/audit.module';
+import { ReconciliationModule } from './modules/reconciliation/reconciliation.module';
 
 @Module({
   imports: [
@@ -57,6 +60,9 @@ import { ScheduledJobsModule } from './modules/scheduled-jobs/scheduled-jobs.mod
     RepaymentModule,
     NotificationModule,
     ScheduledJobsModule,
+    AdminModule,
+    AuditModule,
+    ReconciliationModule,
   ],
 })
 export class AppModule {}
