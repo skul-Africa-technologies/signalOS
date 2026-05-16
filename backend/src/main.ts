@@ -35,8 +35,9 @@ async function bootstrap() {
   if (!isProd) setupSwagger(app);
 
   const port = process.env.PORT ?? 3001;
-  await app.listen(port);
-  logger.log(`signalOS backend running on http://localhost:${port}/api/v1`);
+  const host = process.env.HOST ?? '0.0.0.0';
+  await app.listen(port, host);
+  logger.log(`signalOS backend running on http://${host}:${port}/api/v1`);
   if (!isProd) logger.log(`API docs available at http://localhost:${port}/docs`);
 }
 
