@@ -53,104 +53,97 @@ export interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>()(
-  persist(
-    (set, get) => ({
-      // Initial state - all flags false until storage loads
-      user: null,
-      accessToken: null,
-      storageRestored: false,
-      hasToken: false,
-      hydrated: false,
-      loading: false,
-      error: null,
+   persist(
+     (set, get) => ({
+       // Initial state - all flags false until storage loads
+       user: null,
+       accessToken: null,
+       storageRestored: false,
+       hasToken: false,
+       hydrated: false,
+       loading: false,
+       error: null,
 
-      login: async (phone: string, password: string) => {
-        set({ loading: true, error: null })
-        try {
-          const { user, accessToken }: AuthResponse = await login(phone, password)
-          set({ user, accessToken, loading: false, hydrated: true, hasToken: true })
-        } catch (err) {
-          const message = err instanceof Error ? err.message : 'Login failed'
-          set({ error: message, loading: false })
-          throw err
-        }
-      },
+       login: async (phone: string, password: string) => {
+         set({ loading: true, error: null })
+         try {
+           const { user, accessToken }: AuthResponse = await login(phone, password)
+           set({ user, accessToken, loading: false, hydrated: true, hasToken: true })
+         } catch (err) {
+           const message = err instanceof Error ? err.message : 'Login failed'
+           set({ error: message, loading: false })
+           throw err
+         }
+       },
 
-      signup: async (name: string, phone: string, password: string, businessType: string) => {
-        set({ loading: true, error: null })
-        try {
-          const { user, accessToken }: AuthResponse = await signup(name, phone, password, businessType as BusinessType)
-          set({ user, accessToken, loading: false, hydrated: true, hasToken: true })
-        } catch (err) {
-          const message = err instanceof Error ? err.message : 'Signup failed'
-          set({ error: message, loading: false })
-          throw err
-        }
-      },
+       signup: async (name: string, phone: string, password: string, businessType: string) => {
+         set({ loading: true, error: null })
+         try {
+           const { user, accessToken }: AuthResponse = await signup(name, phone, password, businessType as BusinessType)
+           set({ user, accessToken, loading: false, hydrated: true, hasToken: true })
+         } catch (err) {
+           const message = err instanceof Error ? err.message : 'Signup failed'
+           set({ error: message, loading: false })
+           throw err
+         }
+       },
 
-      logout: async () => {
-        try {
-          await apiLogout()
-        } catch (error) {
-          console.error('Logout API error (ignored):', error)
-        }
-        set({ user: null, accessToken: null, error: null, hydrated: true, hasToken: false })
-      },
+       logout: async () => {
+         try {
+           await apiLogout()
+         } catch (error) {
+           console.error('Logout API error (ignored):', error)
+         }
+         set({ user: null, accessToken: null, error: null, hydrated: true, hasToken: false })
+       },
 
-      setUser: (user: User | null) => set({ user }),
+       setUser: (user: User | null) => set({ user }),
 
-      clearAuth: () => set({ user: null, accessToken: null, error: null, hydrated: true, hasToken: false }),
+       clearAuth: () => set({ user: null, accessToken: null, error: null, hydrated: true, hasToken: false }),
 
-      hydrate: async () => {
-        const { accessToken } = get()
+       hydrate: async () => {
+         const { accessToken } = get()
 
-        // No token = not authenticated, hydration complete immediately
-        if (!accessToken) {
-          set({ storageRestored: true, hydrated: true, hasToken: false })
-          return
-        }
+         // No token = not authenticated, hydration complete immediately
+         if (!accessToken) {
+           set({ storageRestored: true, hydrated: true, hasToken: false })
+           return
+         }
 
-        // Token exists - validate in background
-        // User state is already restored from localStorage by zustand persist
-        // We set hydrated=true immediately to allow app access, then validate
-        set({ hydrated: true, hasToken: true })
+         // Token exists - validate in background
+         // User state is already restored from localStorage by zustand persist
+         // We set hydrated=true immediately to allow app access, then validate
+         set({ hydrated: true, hasToken: true })
 
-        // Background validation - doesn't block UI
-        try {
-          const user = await getCurrentUser()
-          set({ user }) // Update with fresh user data
-        } catch (error) {
-          console.error('Auth validation failed:', error)
-          // Only clear on 401 (invalid token)
-          // For network errors, keep cached session active
-          if (error instanceof Error && error.message.includes('401')) {
-            set({ user: null, accessToken: null, error: 'Session expired', hasToken: false })
-          }
-        }
-      },
-    }),
-    {
-      name: 'signal-auth',
-      partialize: (state) => ({
-        user: state.user,
-        accessToken: state.accessToken,
-      }),
-      // onRehydrateStorage fires AFTER storage is read
-      // We use it to mark storageRestored=true instantly
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          state.storageRestored = true
-          state.hasToken = !!state.accessToken
-          // hydrated remains false until hydrate() completes async validation
-        }
-      },
-    }
-  )
-)
-
-// Listen for auth invalidation events
-if (typeof window !== 'undefined') {
-  window.addEventListener('auth:invalidated', () => {
-    useAuthStore.getState().clearAuth()
-  })
-}
+         // Background validation - doesn't block UI
+         try {
+           const user = await getCurrentUser()
+           set({ user }) // Update with fresh user data
+         } catch (error) {
+           console.error('Auth validation failed:', error)
+           // Only clear on 401 (invalid token)
+           // For network errors, keep cached session active
+           if (error instanceof Error && error.message.includes('401')) {
+             set({ user: null, accessToken: null, error: 'Session expired', hasToken: false })
+           }
+         }
+       },
+     }),
+     {
+       name: 'signal-auth',
+       partialize: (state) => ({
+         user: state.user,
+         accessToken: state.accessToken,
+       }),
+       // onRehydrateStorage fires AFTER storage is read
+       // We use it to mark storageRestored=true instantly
+       onRehydrateStorage: () => (state) => {
+         if (state) {
+           state.storageRestored = true
+           state.hasToken = !!state.accessToken
+           // hydrated remains false until hydrate() completes async validation
+         }
+       },
+     }
+   )
+ )

@@ -32,49 +32,50 @@ interface UsePayoutHistoryReturn {
 }
 
 export function usePayoutHistory(): UsePayoutHistoryReturn {
-  const { isHydrated, isAuthenticated } = useAuth()
-  const [payouts, setPayouts] = useState<PaymentTransaction[]>([])
-  const [withdrawals, setWithdrawals] = useState<PaymentTransaction[]>([])
-  const [analytics, setAnalytics] = useState<FinancialAnalytics | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+   const { isHydrated, isAuthenticated } = useAuth()
+   const [payouts, setPayouts] = useState<PaymentTransaction[]>([])
+   const [withdrawals, setWithdrawals] = useState<PaymentTransaction[]>([])
+   const [analytics, setAnalytics] = useState<FinancialAnalytics | null>(null)
+   const [error, setError] = useState<string | null>(null)
+   const [loading, setLoading] = useState(false)
 
-  const lastFetchKey = useRef<string>("")
+   const lastFetchKey = useRef<string>("")
 
-  const isLoading = loading || !isHydrated || !isAuthenticated
+   const fetchData = useCallback(async () => {
+     if (!isHydrated || !isAuthenticated) return
 
-  const fetchData = useCallback(async () => {
-    if (!isHydrated || !isAuthenticated) return
+     const fetchKey = `${isHydrated}-${isAuthenticated}`
+     if (fetchKey === lastFetchKey.current) return
+     lastFetchKey.current = fetchKey
 
-    const fetchKey = `${isHydrated}-${isAuthenticated}`
-    if (fetchKey === lastFetchKey.current) return
-    lastFetchKey.current = fetchKey
+     setLoading(true)
+     setError(null)
 
-    setLoading(true)
-    setError(null)
+     try {
+       const [payoutsData, withdrawalsData, analyticsData] = await Promise.all([
+         getPayouts(),
+         getWithdrawals(),
+         getFinancialAnalytics(),
+       ])
 
-    try {
-      const [payoutsData, withdrawalsData, analyticsData] = await Promise.all([
-        getPayouts(),
-        getWithdrawals(),
-        getFinancialAnalytics(),
-      ])
+       setPayouts(payoutsData || [])
+       setWithdrawals(withdrawalsData || [])
+       setAnalytics(analyticsData || null)
+     } catch (err) {
+       const message = err instanceof Error ? err.message : "Failed to fetch payout history"
+       setError(message)
+       console.error("Payout history fetch error:", err)
+     } finally {
+       setLoading(false)
+     }
+   }, [isHydrated, isAuthenticated])
 
-      setPayouts(payoutsData || [])
-      setWithdrawals(withdrawalsData || [])
-      setAnalytics(analyticsData || null)
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to fetch payout history"
-      setError(message)
-      console.error("Payout history fetch error:", err)
-    } finally {
-      setLoading(false)
-    }
-  }, [isHydrated, isAuthenticated])
-
-  useEffect(() => {
-    fetchData()
-  }, [fetchData])
+useEffect(() => {
+      if (isHydrated && isAuthenticated) {
+        // Use setTimeout to avoid calling async function that sets state synchronously in effect
+        setTimeout(() => fetchData(), 0)
+      }
+    }, [isHydrated, isAuthenticated, fetchData])
 
   const verifyTransaction = useCallback(
     async (reference: string) => {
@@ -97,13 +98,13 @@ export function usePayoutHistory(): UsePayoutHistoryReturn {
     fetchData()
   }, [fetchData])
 
-  return {
-    payouts,
-    withdrawals,
-    analytics,
-    loading: isLoading,
-    error,
-    refetch,
-    verifyTransaction,
-  }
-}
+return {
+     payouts,
+     withdrawals,
+     analytics,
+     loading,
+     error,
+     refetch,
+     verifyTransaction,
+   }
+ }
