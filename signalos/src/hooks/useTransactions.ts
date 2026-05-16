@@ -9,7 +9,7 @@
 
 /* eslint-disable react-hooks/set-state-in-effect */
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '@/src/context/AuthContext'
 import { getTransactions } from '@/src/api/transaction.service'
 import type { TransactionRecord } from '@/types'
@@ -22,47 +22,54 @@ interface UseTransactionsReturn {
 }
 
 export function useTransactions(): UseTransactionsReturn {
-  const { isHydrated, isAuthenticated } = useAuth()
-  const [transactions, setTransactions] = useState<TransactionRecord[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const lastFetchKey = useRef<string>('')
+   const { isHydrated, isAuthenticated } = useAuth()
+   const [transactions, setTransactions] = useState<TransactionRecord[]>([])
+   const [error, setError] = useState<string | null>(null)
+   const [loading, setLoading] = useState(false)
+   const lastFetchKey = useRef<string>('')
 
-  // Derive loading state
-  const isLoading = !isHydrated || !isAuthenticated
+   const fetchData = useCallback(() => {
+     const fetchKey = `${isHydrated}-${isAuthenticated}`
 
-  useEffect(() => {
-    const fetchKey = `${isHydrated}-${isAuthenticated}`
+     // Skip if already fetched the same state
+     if (fetchKey === lastFetchKey.current) return
+     lastFetchKey.current = fetchKey
 
-    // Skip if already fetched the same state
-    if (fetchKey === lastFetchKey.current) return
-    lastFetchKey.current = fetchKey
+     // Only fetch if authenticated and hydrated
+     if (!isHydrated || !isAuthenticated) {
+       return
+     }
 
-    // Only fetch if authenticated and hydrated
-    if (!isHydrated || !isAuthenticated) {
-      return
-    }
+     setError(null)
+     setLoading(true)
 
-    setError(null)
+     getTransactions()
+       .then((data) => {
+         setTransactions(data)
+       })
+       .catch((err) => {
+         const message = err instanceof Error ? err.message : 'Failed to load transactions'
+         setError(message)
+         console.error('Transactions fetch error:', err)
+       })
+       .finally(() => {
+         setLoading(false)
+       })
+   }, [isHydrated, isAuthenticated])
 
-    getTransactions()
-      .then((data) => {
-        setTransactions(data)
-      })
-      .catch((err) => {
-        const message = err instanceof Error ? err.message : 'Failed to load transactions'
-        setError(message)
-        console.error('Transactions fetch error:', err)
-      })
-  }, [isHydrated, isAuthenticated])
+   useEffect(() => {
+     fetchData()
+   }, [fetchData])
 
-  const refetch = () => {
-    lastFetchKey.current = ''
-  }
+   const refetch = useCallback(() => {
+     lastFetchKey.current = ''
+     fetchData()
+   }, [fetchData])
 
-  return {
-    transactions,
-    loading: isLoading,
-    error,
-    refetch,
-  }
-}
+   return {
+     transactions,
+     loading,
+     error,
+     refetch,
+   }
+ }

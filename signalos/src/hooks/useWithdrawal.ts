@@ -13,7 +13,7 @@
 
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useAuth } from "@/src/context/AuthContext"
 import { useWallet } from "@/src/hooks/useWallet"
 import { requestWithdrawal, validateWithdrawal } from "@/src/api/payment.service"
@@ -82,17 +82,17 @@ export function useWithdrawal(initialBalance: number = 0): UseWithdrawalReturn {
   const [accountName, setAccountName] = useState<string>("")
   const [narration, setNarration] = useState<string>("")
 
-  // UI state
-  const [loading, setLoading] = useState(false)
-  const [processing, setProcessing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
-  const [validationErrors, setValidationErrors] = useState<WithdrawalValidation | null>(null)
-  const [lastWithdrawal, setLastWithdrawal] = useState<Withdrawal | null>(null)
+// UI state
+   const [loading, setLoading] = useState(false)
+   const [processing, setProcessing] = useState(false)
+   const [error, setError] = useState<string | null>(null)
+   const [success, setSuccess] = useState(false)
+   const [validationErrors, setValidationErrors] = useState<WithdrawalValidation | null>(null)
+   const [lastWithdrawal, setLastWithdrawal] = useState<Withdrawal | null>(null)
 
-  // Duplicate submission prevention
-  const submittingRef = useRef(false)
-  const lastRequestRef = useRef<string>("")
+   // Duplicate submission prevention - use state to avoid render issues
+   const [isSubmitting, setIsSubmitting] = useState(false)
+   const lastRequestRef = useRef<string>("")
 
   // Auto-clear success/error after timeout
   const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -134,76 +134,78 @@ export function useWithdrawal(initialBalance: number = 0): UseWithdrawalReturn {
     return { valid: true, errors: {} }
   }, [amount, bankCode, accountNumber, accountName, availableBalance])
 
-  // Check if form can be submitted
-  const canSubmit = !!(
-    amount > 0 &&
-    amount <= availableBalance &&
-    amount >= MIN_WITHDRAWAL &&
-    bankCode &&
-    VALID_BANK_CODES.has(bankCode) &&
-    accountNumber &&
-    accountNumber.length >= 10 &&
-    /^\d+$/.test(accountNumber) &&
-    accountName &&
-    accountName.trim().length >= 2 &&
-    !submittingRef.current
-  )
+// Check if form can be submitted
+   const canSubmit = useMemo(() => {
+     return !!(
+       amount > 0 &&
+       amount <= availableBalance &&
+       amount >= MIN_WITHDRAWAL &&
+       bankCode &&
+       VALID_BANK_CODES.has(bankCode) &&
+       accountNumber &&
+       accountNumber.length >= 10 &&
+       /^\d+$/.test(accountNumber) &&
+       accountName &&
+       accountName.trim().length >= 2 &&
+       !isSubmitting
+     )
+   }, [amount, availableBalance, bankCode, accountNumber, accountName, isSubmitting])
 
-  // Submit withdrawal
-  const submitWithdrawal = useCallback(async (): Promise<boolean> => {
-    // Guard: must be authenticated
-    if (!isHydrated || !isAuthenticated) {
-      setError("Authentication required. Please log in again.")
-      errorTimerRef.current = setTimeout(clearError, 5000)
-      return false
-    }
+// Submit withdrawal
+   const submitWithdrawal = useCallback(async (): Promise<boolean> => {
+     // Guard: must be authenticated
+     if (!isHydrated || !isAuthenticated) {
+       setError("Authentication required. Please log in again.")
+       errorTimerRef.current = setTimeout(clearError, 5000)
+       return false
+     }
 
-    // Guard: prevent duplicate submissions
-    if (submittingRef.current) {
-      setError("A withdrawal request is already being processed.")
-      errorTimerRef.current = setTimeout(clearError, 5000)
-      return false
-    }
+     // Guard: prevent duplicate submissions
+     if (isSubmitting) {
+       setError("A withdrawal request is already being processed.")
+       errorTimerRef.current = setTimeout(clearError, 5000)
+       return false
+     }
 
-    // Validate again before submission
-    const validation = validate()
-    if (!validation.valid) {
-      const firstError = Object.values(validation.errors || {})[0]
-      setError(firstError || "Please fix the form errors below.")
-      errorTimerRef.current = setTimeout(clearError, 5000)
-      return false
-    }
+     // Validate again before submission
+     const validation = validate()
+     if (!validation.valid) {
+       const firstError = Object.values(validation.errors || {})[0]
+       setError(firstError || "Please fix the form errors below.")
+       errorTimerRef.current = setTimeout(clearError, 5000)
+       return false
+     }
 
-    // Generate unique request reference for idempotency tracking
-    const requestRef = `wd_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+     // Generate unique request reference for idempotency tracking
+     const requestRef = `wd_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
-    // Prevent duplicate for the same request
-    if (lastRequestRef.current === requestRef) {
-      setError("Duplicate request detected. Please wait.")
-      errorTimerRef.current = setTimeout(clearError, 5000)
-      return false
-    }
+     // Prevent duplicate for the same request
+     if (lastRequestRef.current === requestRef) {
+       setError("Duplicate request detected. Please wait.")
+       errorTimerRef.current = setTimeout(clearError, 5000)
+       return false
+     }
 
-    submittingRef.current = true
-    lastRequestRef.current = requestRef
-    setLoading(true)
-    setProcessing(true)
-    setError(null)
-    setSuccess(false)
-    setValidationErrors(null)
+     setIsSubmitting(true)
+     lastRequestRef.current = requestRef
+     setLoading(true)
+     setProcessing(true)
+     setError(null)
+     setSuccess(false)
+     setValidationErrors(null)
 
-    try {
-      const payload: WithdrawalRequest = {
-        amount,
-        bankCode,
-        accountNumber,
-        accountName,
-        narration: narration || "Withdrawal from signalOS wallet",
-      }
+     try {
+       const payload: WithdrawalRequest = {
+         amount,
+         bankCode,
+         accountNumber,
+         accountName,
+         narration: narration || "Withdrawal from signalOS wallet",
+       }
 
-      await requestWithdrawal(payload)
+       await requestWithdrawal(payload)
 
-      setSuccess(true)
+       setSuccess(true)
        setLastWithdrawal({
          id: requestRef,
          reference: requestRef,
@@ -213,56 +215,53 @@ export function useWithdrawal(initialBalance: number = 0): UseWithdrawalReturn {
          updatedAt: new Date().toISOString(),
        })
 
-      // Refresh wallet balance to reflect the pending withdrawal
-      refetchWallet()
+       // Refresh wallet balance to reflect the pending withdrawal
+       refetchWallet()
 
-      // Auto-clear success state after 8 seconds
-      successTimerRef.current = setTimeout(() => {
-        setSuccess(false)
-      }, 8000)
+       // Auto-clear success state after 8 seconds
+       successTimerRef.current = setTimeout(() => {
+         setSuccess(false)
+       }, 8000)
 
-      submittingRef.current = false
-      setLoading(false)
-      setProcessing(false)
+       return true
+     } catch (err) {
+       const message = err instanceof Error ? err.message : "Withdrawal request failed. Please try again."
+       setError(message)
+       errorTimerRef.current = setTimeout(clearError, 8000)
 
-      return true
-    } catch (err) {
-      submittingRef.current = false
-      setLoading(false)
-      setProcessing(false)
+       console.error("Withdrawal error:", err)
+       return false
+     } finally {
+       setIsSubmitting(false)
+       setLoading(false)
+       setProcessing(false)
+     }
+   }, [
+     isHydrated,
+     isAuthenticated,
+     amount,
+     bankCode,
+     accountNumber,
+     accountName,
+     narration,
+     refetchWallet,
+     validate,
+     clearError,
+     isSubmitting,
+   ])
 
-      const message = err instanceof Error ? err.message : "Withdrawal request failed. Please try again."
-      setError(message)
-      errorTimerRef.current = setTimeout(clearError, 8000)
-
-      console.error("Withdrawal error:", err)
-      return false
-    }
-  }, [
-    isHydrated,
-    isAuthenticated,
-    amount,
-    bankCode,
-    accountNumber,
-    accountName,
-    narration,
-    refetchWallet,
-    validate,
-    clearError,
-  ])
-
-  // Reset entire form
-  const resetForm = useCallback(() => {
-    setAmount(0)
-    setBankCode("")
-    setAccountNumber("")
-    setAccountName("")
-    setNarration("")
-    setError(null)
-    setSuccess(false)
-    setValidationErrors(null)
-    submittingRef.current = false
-  }, [])
+// Reset entire form
+   const resetForm = useCallback(() => {
+     setAmount(0)
+     setBankCode("")
+     setAccountNumber("")
+     setAccountName("")
+     setNarration("")
+     setError(null)
+     setSuccess(false)
+     setValidationErrors(null)
+     setIsSubmitting(false)
+   }, [])
 
   return {
     // Form state
