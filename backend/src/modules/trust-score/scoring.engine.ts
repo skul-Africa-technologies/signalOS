@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { Transaction, TransactionStatus } from '@prisma/client';
+import { TransactionStatus } from '../../common/prisma-enums';
+import { Transaction } from '@prisma/client';
 
 export type RiskLevel = 'Low' | 'Medium' | 'High' | 'Very High';
 

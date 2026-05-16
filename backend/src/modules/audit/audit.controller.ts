@@ -1,6 +1,6 @@
 import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
-import { AuditActorType } from '@prisma/client';
+import { AuditActorType } from './audit.service';
 import { AdminGuard } from '../admin/guards/admin.guard';
 import { RequirePermissions } from '../admin/decorators/permissions.decorator';
 import { AuditService } from './audit.service';

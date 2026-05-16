@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiSecurity, ApiTags } from '@nestjs/swagger';
-import { MismatchStatus } from '@prisma/client';
+import { MismatchStatus } from '../../common/prisma-enums';
 import { AdminGuard } from '../admin/guards/admin.guard';
 import { RequirePermissions } from '../admin/decorators/permissions.decorator';
 import { ReconciliationService } from './reconciliation.service';

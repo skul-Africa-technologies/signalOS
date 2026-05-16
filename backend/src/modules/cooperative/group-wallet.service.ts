@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { GroupLedgerCategory, LedgerDirection, LedgerEntryType } from '@prisma/client';
+import { GroupLedgerCategory, LedgerDirection, LedgerEntryType } from '../../common/prisma-enums';
 import { PrismaService } from '../../prisma/prisma.service';
 import { GroupLedgerService } from './group-ledger.service';
 

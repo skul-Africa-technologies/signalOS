@@ -1,0 +1,922 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// ─── Core Identity ────────────────────────────────────────────────────────────
+
+model User {
+  id           String       @id @default(cuid())
+  phone        String       @unique
+  name         String
+  passwordHash String
+  businessType BusinessType @default(TRADER)
+  trustScore   Float        @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  profile      EconomicProfile?
+  transactions Transaction[]
+  groupMemberships GroupMember[]
+  contributions    Contribution[]
+  createdGroups    SavingsGroup[] @relation("CreatedGroups")
+  loanEligibility  LoanEligibility?
+  financialSignals    FinancialSignal[]
+  riskAssessments     RiskAssessment[]
+  intelligenceSnapshots IntelligenceSnapshot[]
+  wallet              Wallet?
+  refreshSessions     RefreshSession[]
+  consentGrants       ConsentGrant[]
+
+  @@map("users")
+}
+
+enum BusinessType {
+  TRADER
+  ARTISAN
+  FREELANCER
+  VENDOR
+  OTHER
+}
+
+// ─── Economic Identity ────────────────────────────────────────────────────────
+
+model EconomicProfile {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  trustScore          Float    @default(0)
+  reliabilityScore    Float    @default(0)
+  employabilityScore  Float    @default(0)
+  liquidityScore      Float    @default(0)
+  consistencyScore    Float    @default(0)
+  growthScore         Float    @default(0)
+  participationScore  Float    @default(0)
+  activityLevel       Float    @default(0)
+  riskLevel           String   @default("Very High")
+  occupation          String?
+  location            String?
+  updatedAt           DateTime @updatedAt
+
+  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  signals             FinancialSignal[]
+  riskAssessments     RiskAssessment[]
+  snapshots           IntelligenceSnapshot[]
+
+  @@map("economic_profiles")
+}
+
+// ─── Intelligence Layer ───────────────────────────────────────────────────────
+
+// One row per extraction run — longitudinal signal history
+model FinancialSignal {
+  id                      String   @id @default(cuid())
+  userId                  String
+  profileId               String
+  transactionFrequency    Float
+  repaymentConsistency    Float
+  repeatCustomerRate      Float
+  incomeStability         Float
+  cashflowVolatility      Float
+  activityLevel           Float
+  savingsBehaviour        Float
+  contributionReliability Float
+  groupParticipation      Float
+  dataPoints              Int      @default(0)
+  extractedAt             DateTime @default(now())
+
+  profile EconomicProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([extractedAt])
+  @@map("financial_signals")
+}
+
+// One row per risk evaluation — tracks risk evolution over time
+model RiskAssessment {
+  id                   String   @id @default(cuid())
+  userId               String
+  profileId            String
+  riskLevel            String
+  riskScore            Float
+  volatilityDetected   Boolean  @default(false)
+  inactivityDetected   Boolean  @default(false)
+  flags                Json     // string[]
+  assessedAt           DateTime @default(now())
+
+  profile EconomicProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([assessedAt])
+  @@map("risk_assessments")
+}
+
+// Full point-in-time intelligence snapshot — enables longitudinal analytics and ML
+model IntelligenceSnapshot {
+  id                 String   @id @default(cuid())
+  userId             String
+  profileId          String
+  trustScore         Float
+  riskLevel          String
+  confidenceLevel    String
+  eligibleForLoan    Boolean  @default(false)
+  eligibleAmount     Float    @default(0)
+  recommendations    Json     // string[]
+  signalSummary      Json     // EconomicSignals as JSON
+  scoreSummary       Json     // IntelligenceScores as JSON
+  triggeredBy        String   @default("analysis")
+  createdAt          DateTime @default(now())
+
+  profile EconomicProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("intelligence_snapshots")
+}
+
+// ─── Transactions ─────────────────────────────────────────────────────────────
+
+model Transaction {
+  id              String            @id @default(cuid())
+  userId          String
+  reference       String            @unique
+  squadReference  String?           @unique
+  amount          Float
+  currency        String            @default("NGN")
+  type            TransactionType
+  status          TransactionStatus @default(PENDING)
+  channel         String?
+  metadata        Json?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("transactions")
+}
+
+enum TransactionType {
+  CREDIT
+  DEBIT
+  TRANSFER
+  SAVINGS
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+// ─── Cooperative Savings ──────────────────────────────────────────────────────
+
+model SavingsGroup {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  targetAmount Float        @default(0)
+  createdById String
+  createdAt   DateTime      @default(now())
+
+  createdBy   User          @relation("CreatedGroups", fields: [createdById], references: [id])
+  members     GroupMember[]
+  contributions Contribution[]
+  groupWallet SavingsGroupWallet?
+
+  @@map("savings_groups")
+}
+
+model GroupMember {
+  id        String      @id @default(cuid())
+  userId    String
+  groupId   String
+  joinedAt  DateTime    @default(now())
+
+  user  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group SavingsGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
+  @@map("group_members")
+}
+
+// ─── Loan Eligibility ─────────────────────────────────────────────────────────
+
+model LoanEligibility {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  eligible        Boolean  @default(false)
+  eligibleAmount  Float    @default(0)
+  riskLevel       String   @default("Very High")
+  recommendation  String
+  trustScore      Float
+  evaluatedAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("loan_eligibility")
+}
+
+model Contribution {
+  id        String      @id @default(cuid())
+  userId    String
+  groupId   String
+  amount    Float
+  createdAt DateTime    @default(now())
+
+  user  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group SavingsGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([groupId])
+  @@map("contributions")
+}
+
+// ─── Wallet Infrastructure ────────────────────────────────────────────────────
+
+model Wallet {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  availableBalance Float    @default(0)
+  pendingBalance   Float    @default(0)
+  frozenBalance    Float    @default(0)
+  totalCredits     Float    @default(0)
+  totalDebits      Float    @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ledgerEntries LedgerEntry[]
+  payouts      Payout[]
+  withdrawals  Withdrawal[]
+
+  @@map("wallets")
+}
+
+model LedgerEntry {
+  id            String          @id @default(cuid())
+  walletId      String
+  type          LedgerEntryType
+  direction     LedgerDirection
+  amount        Float
+  reference     String          @unique
+  category      LedgerCategory
+  status        LedgerStatus    @default(COMPLETED)
+  balanceBefore Float
+  balanceAfter  Float
+  metadata      Json?
+  createdAt     DateTime        @default(now())
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@index([reference])
+  @@index([createdAt])
+  @@map("ledger_entries")
+}
+
+enum LedgerEntryType {
+  CREDIT
+  DEBIT
+}
+
+enum LedgerDirection {
+  CREDIT
+  DEBIT
+}
+
+enum LedgerCategory {
+  PAYMENT_RECEIVED
+  SAVINGS_CONTRIBUTION
+  LOAN_DISBURSEMENT
+  WITHDRAWAL
+  REFUND
+  CASHBACK
+  INTERNAL_TRANSFER
+}
+
+enum LedgerStatus {
+  PENDING
+  COMPLETED
+  REVERSED
+}
+
+// ─── Payout / Withdrawal ──────────────────────────────────────────────────────
+
+model Payout {
+  id            String       @id @default(cuid())
+  walletId      String
+  userId        String
+  amount        Float
+  reference     String       @unique
+  status        PayoutStatus @default(PENDING)
+  provider      String       @default("squad")
+  providerRef   String?
+  bankCode      String
+  accountNumber String
+  accountName   String
+  narration     String?
+  failureReason String?
+  metadata      Json?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@index([userId])
+  @@index([status])
+  @@map("payouts")
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
+  REVERSED
+}
+
+model Withdrawal {
+  id            String           @id @default(cuid())
+  walletId      String
+  userId        String
+  amount        Float
+  reference     String           @unique
+  status        WithdrawalStatus @default(PENDING)
+  bankCode      String
+  accountNumber String
+  accountName   String
+  narration     String?
+  payoutId      String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@index([userId])
+  @@map("withdrawals")
+}
+
+enum WithdrawalStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// ─── Loan Disbursement ────────────────────────────────────────────────────────
+
+model LoanDisbursement {
+  id          String             @id @default(cuid())
+  userId      String
+  walletId    String
+  amount      Float
+  reference   String             @unique
+  status      DisbursementStatus @default(PENDING)
+  loanTermDays Int               @default(30)
+  dueDate     DateTime?
+  disbursedAt DateTime?
+  repaidAt    DateTime?
+  metadata    Json?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("loan_disbursements")
+}
+
+enum DisbursementStatus {
+  PENDING
+  APPROVED
+  DISBURSED
+  REPAID
+  DEFAULTED
+}
+
+// ─── Auth Sessions ────────────────────────────────────────────────────────────
+
+model RefreshSession {
+  id               String    @id @default(cuid())
+  userId           String
+  refreshTokenHash String
+  deviceInfo       String?
+  ipAddress        String?
+  userAgent        String?
+  expiresAt        DateTime
+  revoked          Boolean   @default(false)
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([revoked])
+  @@map("refresh_sessions")
+}
+
+// ─── Cooperative Treasury ─────────────────────────────────────────────────────
+
+model SavingsGroupWallet {
+  id                  String   @id @default(cuid())
+  groupId             String   @unique
+  availableBalance    Float    @default(0)
+  reserveBalance      Float    @default(0)
+  lendingPoolBalance  Float    @default(0)
+  totalContributions  Float    @default(0)
+  totalLoansIssued    Float    @default(0)
+  totalWithdrawals    Float    @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  group        SavingsGroup       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  ledgerEntries GroupLedgerEntry[]
+  groupLoans   GroupLoan[]
+
+  @@map("savings_group_wallets")
+}
+
+model GroupLedgerEntry {
+  id             String              @id @default(cuid())
+  groupWalletId  String
+  type           LedgerEntryType
+  direction      LedgerDirection
+  amount         Float
+  reference      String              @unique
+  category       GroupLedgerCategory
+  status         LedgerStatus        @default(COMPLETED)
+  balanceBefore  Float
+  balanceAfter   Float
+  memberId       String?
+  metadata       Json?
+  createdAt      DateTime            @default(now())
+
+  groupWallet SavingsGroupWallet @relation(fields: [groupWalletId], references: [id], onDelete: Cascade)
+
+  @@index([groupWalletId])
+  @@index([reference])
+  @@index([createdAt])
+  @@map("group_ledger_entries")
+}
+
+enum GroupLedgerCategory {
+  MEMBER_CONTRIBUTION
+  GROUP_LOAN_DISBURSEMENT
+  GROUP_LOAN_REPAYMENT
+  ROTATIONAL_PAYOUT
+  MEMBER_WITHDRAWAL
+  TREASURY_RESERVE
+  TREASURY_ADJUSTMENT
+}
+
+model GroupLoan {
+  id             String          @id @default(cuid())
+  groupWalletId  String
+  groupId        String
+  borrowerId     String
+  amount         Float
+  reference      String          @unique
+  status         GroupLoanStatus @default(PENDING)
+  loanTermDays   Int             @default(30)
+  dueDate        DateTime?
+  disbursedAt    DateTime?
+  repaidAt       DateTime?
+  repaidAmount   Float           @default(0)
+  metadata       Json?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  groupWallet SavingsGroupWallet @relation(fields: [groupWalletId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@index([borrowerId])
+  @@index([status])
+  @@map("group_loans")
+}
+
+enum GroupLoanStatus {
+  PENDING
+  APPROVED
+  DISBURSED
+  REPAID
+  DEFAULTED
+}
+
+model GroupEconomicProfile {
+  id                      String   @id @default(cuid())
+  groupId                 String   @unique
+  treasuryHealth          Float    @default(0)
+  groupReliability        Float    @default(0)
+  contributionConsistency Float    @default(0)
+  repaymentPerformance    Float    @default(0)
+  memberParticipation     Float    @default(0)
+  liquidityStability      Float    @default(0)
+  lendingSustainability   Float    @default(0)
+  sustainabilityScore     Float    @default(0)
+  reserveRatio            Float    @default(0)
+  updatedAt               DateTime @updatedAt
+
+  @@map("group_economic_profiles")
+}
+
+model TreasurySnapshot {
+  id                  String   @id @default(cuid())
+  groupId             String
+  treasuryBalance     Float
+  reserveRatio        Float
+  lendingCapacity     Float
+  activeLoans         Int      @default(0)
+  sustainabilityScore Float
+  memberCount         Int      @default(0)
+  triggeredBy         String   @default("contribution")
+  createdAt           DateTime @default(now())
+
+  @@index([groupId])
+  @@index([createdAt])
+  @@map("treasury_snapshots")
+}
+
+// ─── External API Infrastructure ─────────────────────────────────────────────
+
+model Organization {
+  id             String           @id @default(cuid())
+  name           String
+  type           OrgType
+  contactEmail   String           @unique
+  webhookUrl     String?
+  active         Boolean          @default(true)
+  allowedScopes  String[]
+  rateLimitTier  RateLimitTier    @default(FREE)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  apiKeys        ApiKey[]
+  webhookSubs    WebhookSubscription[]
+  auditLogs      ExternalAccessAuditLog[]
+  usageMetrics   OrganizationUsageMetrics[]
+  consentGrants  ConsentGrant[]
+
+  @@map("organizations")
+}
+
+enum OrgType {
+  BANK
+  FINTECH
+  MICROFINANCE
+  INSURER
+  EMPLOYER
+  NGO
+  MARKETPLACE
+  COOPERATIVE
+}
+
+enum RateLimitTier {
+  FREE
+  STARTER
+  GROWTH
+  BANK
+  ENTERPRISE
+}
+
+model ApiKey {
+  id             String       @id @default(cuid())
+  organizationId String
+  keyHash        String       @unique
+  label          String?
+  scopes         String[]
+  active         Boolean      @default(true)
+  lastUsedAt     DateTime?
+  expiresAt      DateTime?
+  createdAt      DateTime     @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("api_keys")
+}
+
+model ConsentGrant {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  scopes         String[]
+  purpose        String
+  expiresAt      DateTime
+  revoked        Boolean      @default(false)
+  revokedAt      DateTime?
+  createdAt      DateTime     @default(now())
+
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([organizationId])
+  @@map("consent_grants")
+}
+
+model WebhookSubscription {
+  id             String       @id @default(cuid())
+  organizationId String
+  url            String
+  events         String[]
+  secret         String
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deliveries     WebhookDelivery[]
+
+  @@index([organizationId])
+  @@map("webhook_subscriptions")
+}
+
+model WebhookDelivery {
+  id               String              @id @default(cuid())
+  subscriptionId   String
+  event            String
+  payload          Json
+  status           WebhookDeliveryStatus @default(PENDING)
+  attempts         Int                 @default(0)
+  lastAttemptAt    DateTime?
+  nextRetryAt      DateTime?
+  responseStatus   Int?
+  responseBody     String?
+  createdAt        DateTime            @default(now())
+
+  subscription     WebhookSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@index([status])
+  @@map("webhook_deliveries")
+}
+
+enum WebhookDeliveryStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  EXHAUSTED
+}
+
+model ExternalAccessAuditLog {
+  id             String       @id @default(cuid())
+  organizationId String
+  endpoint       String
+  userId         String?
+  scopesUsed     String[]
+  purpose        String?
+  ipAddress      String?
+  responseStatus Int
+  createdAt      DateTime     @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([createdAt])
+  @@map("external_access_audit_logs")
+}
+
+model OrganizationUsageMetrics {
+  id             String       @id @default(cuid())
+  organizationId String
+  date           DateTime
+  requestCount   Int          @default(0)
+  endpoint       String?
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([date])
+  @@map("organization_usage_metrics")
+}
+
+// ─── Repayment Infrastructure ─────────────────────────────────────────────────
+
+model LoanRepaymentSchedule {
+  id                 String                 @id @default(cuid())
+  loanId             String
+  installmentNumber  Int
+  amountDue          Float
+  principalAmount    Float
+  interestAmount     Float
+  penaltyAmount      Float                  @default(0)
+  dueDate            DateTime
+  paidAt             DateTime?
+  status             RepaymentScheduleStatus @default(PENDING)
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  repayments         LoanRepayment[]
+
+  @@index([loanId])
+  @@index([dueDate])
+  @@index([status])
+  @@map("loan_repayment_schedules")
+}
+
+enum RepaymentScheduleStatus {
+  PENDING
+  PAID
+  OVERDUE
+  MISSED
+  PARTIAL
+}
+
+model LoanRepayment {
+  id                   String   @id @default(cuid())
+  loanId               String
+  repaymentScheduleId  String
+  walletId             String
+  amountPaid           Float
+  paymentReference     String   @unique
+  paymentMethod        String   @default("wallet")
+  paidAt               DateTime @default(now())
+  createdAt            DateTime @default(now())
+
+  schedule             LoanRepaymentSchedule @relation(fields: [repaymentScheduleId], references: [id], onDelete: Cascade)
+
+  @@index([loanId])
+  @@index([repaymentScheduleId])
+  @@map("loan_repayments")
+}
+
+// ─── Notification Infrastructure ─────────────────────────────────────────────
+
+model Notification {
+  id        String             @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  channel   NotificationChannel
+  status    NotificationStatus @default(PENDING)
+  metadata  Json?
+  readAt    DateTime?
+  createdAt DateTime           @default(now())
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  PAYMENT_SUCCESS
+  LOAN_APPROVED
+  REPAYMENT_DUE
+  REPAYMENT_OVERDUE
+  TRUST_SCORE_CHANGED
+  WITHDRAWAL_SUCCESS
+  SAVINGS_REMINDER
+  FRAUD_ALERT
+  TREASURY_ALERT
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  READ
+}
+
+model NotificationPreference {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  emailEnabled Boolean  @default(true)
+  smsEnabled   Boolean  @default(true)
+  inAppEnabled Boolean  @default(true)
+  mutedTypes   String[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("notification_preferences")
+}
+
+
+// ─── Admin Infrastructure ─────────────────────────────────────────────────────
+
+model AdminUser {
+  id          String      @id @default(cuid())
+  email       String      @unique
+  passwordHash String
+  role        AdminRole   @default(SUPPORT_ADMIN)
+  permissions String[]
+  active      Boolean     @default(true)
+  lastLoginAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("admin_users")
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  OPERATIONS_ADMIN
+  TREASURY_ADMIN
+  FRAUD_ANALYST
+  SUPPORT_ADMIN
+  AUDITOR
+}
+
+// ─── Audit Infrastructure ─────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String        @id @default(cuid())
+  actorType  AuditActorType
+  actorId    String
+  action     String
+  entityType String?
+  entityId   String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime      @default(now())
+
+  @@index([actorId])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+enum AuditActorType {
+  USER
+  ADMIN
+  ORGANIZATION
+  SYSTEM
+}
+
+// ─── Reconciliation Infrastructure ───────────────────────────────────────────
+
+model ReconciliationJob {
+  id               String                  @id @default(cuid())
+  provider         String
+  startedAt        DateTime                @default(now())
+  completedAt      DateTime?
+  status           ReconciliationJobStatus @default(RUNNING)
+  mismatchesFound  Int                     @default(0)
+  resolvedCount    Int                     @default(0)
+  createdAt        DateTime                @default(now())
+
+  mismatches       ReconciliationMismatch[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("reconciliation_jobs")
+}
+
+enum ReconciliationJobStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+  PARTIAL
+}
+
+model ReconciliationMismatch {
+  id                  String              @id @default(cuid())
+  reconciliationJobId String
+  reference           String
+  mismatchType        MismatchType
+  internalValue       String?
+  externalValue       String?
+  status              MismatchStatus      @default(OPEN)
+  resolutionNotes     String?
+  createdAt           DateTime            @default(now())
+
+  job                 ReconciliationJob   @relation(fields: [reconciliationJobId], references: [id], onDelete: Cascade)
+
+  @@index([reconciliationJobId])
+  @@index([status])
+  @@map("reconciliation_mismatches")
+}
+
+enum MismatchType {
+  MISSING_TRANSACTION
+  DUPLICATE_TRANSACTION
+  AMOUNT_MISMATCH
+  STATUS_MISMATCH
+  LEDGER_INCONSISTENCY
+}
+
+enum MismatchStatus {
+  OPEN
+  RESOLVED
+  IGNORED
+  ESCALATED
+}

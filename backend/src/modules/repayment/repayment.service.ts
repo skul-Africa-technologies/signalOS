@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { DisbursementStatus, LedgerCategory, RepaymentScheduleStatus } from '@prisma/client';
+import { DisbursementStatus, LedgerCategory, RepaymentScheduleStatus } from '../../common/prisma-enums';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 import { GenerateScheduleDto, MakeRepaymentDto, RepaymentInterval } from './dto/repayment.dto';
@@ -117,7 +117,7 @@ export class RepaymentService {
           category: LedgerCategory.INTERNAL_TRANSFER,
           balanceBefore: w.availableBalance,
           balanceAfter: w.availableBalance - dto.amount,
-          metadata: { loanId: dto.loanId, scheduleId: schedule.id },
+          metadata: JSON.stringify({ loanId: dto.loanId, scheduleId: schedule.id }),
         },
       });
 

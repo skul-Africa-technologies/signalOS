@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { GroupLoanStatus } from '@prisma/client';
+import { GroupLoanStatus } from '../../common/prisma-enums';
 import { PrismaService } from '../../prisma/prisma.service';
 
 export interface TreasuryHealth {

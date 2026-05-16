@@ -1,6 +1,6 @@
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { GroupLedgerCategory, GroupLoanStatus, LedgerCategory } from '@prisma/client';
+import { GroupLedgerCategory, GroupLoanStatus, LedgerCategory } from '../../common/prisma-enums';
 import { PrismaService } from '../../prisma/prisma.service';
 import { GroupWalletService } from './group-wallet.service';
 import { WalletService } from '../wallet/wallet.service';
@@ -68,7 +68,7 @@ export class GroupLoanService {
           balanceBefore: gw.availableBalance,
           balanceAfter: gw.availableBalance - amount,
           memberId: borrowerId,
-          metadata: { borrowerId, dueDate },
+          metadata: JSON.stringify({ borrowerId, dueDate }),
         },
       });
 
@@ -88,7 +88,7 @@ export class GroupLoanService {
             category: LedgerCategory.LOAN_DISBURSEMENT,
             balanceBefore: mw.availableBalance,
             balanceAfter: mw.availableBalance + amount,
-            metadata: { groupId, source: 'group_loan' },
+            metadata: JSON.stringify({ groupId, source: 'group_loan' }),
           },
         });
       }

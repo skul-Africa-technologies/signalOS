@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEmail, IsEnum, IsOptional, IsString, IsUrl, IsArray } from 'class-validator';
-import { OrgType, RateLimitTier } from '@prisma/client';
+import { OrgType, RateLimitTier } from '../../../common/prisma-enums';
 
 export class CreateOrganizationDto {
   @ApiProperty({ example: 'First Bank Nigeria' })

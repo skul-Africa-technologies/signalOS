@@ -1,6 +1,6 @@
 import { IsEnum, IsNotEmpty, IsString, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { BusinessType } from '@prisma/client';
+import { BusinessType } from '../../../common/prisma-enums';
 
 export class SignupDto {
   @ApiProperty({ example: 'Amara Okafor', description: 'Full name of the user' })

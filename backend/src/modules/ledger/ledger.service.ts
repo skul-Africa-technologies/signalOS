@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { LedgerCategory, LedgerDirection, LedgerEntryType, LedgerStatus } from '@prisma/client';
+import { LedgerCategory, LedgerDirection, LedgerEntryType, LedgerStatus } from '../../common/prisma-enums';
 import { PrismaService } from '../../prisma/prisma.service';
 
 export interface CreateLedgerEntryInput {
@@ -33,7 +33,7 @@ export class LedgerService {
         category: input.category,
         balanceBefore: input.balanceBefore,
         balanceAfter: input.balanceAfter,
-        metadata: input.metadata ?? {},
+        metadata: JSON.stringify(input.metadata ?? {}),
         status: input.status ?? LedgerStatus.COMPLETED,
       },
     });

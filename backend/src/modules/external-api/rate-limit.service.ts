@@ -1,11 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { RateLimitTier } from '@prisma/client';
+import { RateLimitTier } from '../../common/prisma-enums';
 
-export const TIER_LIMITS: Record<RateLimitTier, number> = {
+export const TIER_LIMITS: Record<string, number> = {
   FREE: 100,
   STARTER: 1_000,
   GROWTH: 10_000,
+  PROFESSIONAL: 100_000,
   BANK: 50_000,
   ENTERPRISE: 500_000,
 };

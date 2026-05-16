@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { NotificationChannel, NotificationType } from '@prisma/client';
+import { NotificationChannel, NotificationType } from '../../common/prisma-enums';
 import { NotificationService } from './notification.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { REPAYMENT_EVENTS } from '../repayment/repayment.service';

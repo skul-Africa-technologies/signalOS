@@ -24,7 +24,7 @@ import { AuditService } from '../audit/audit.service';
 import { AuditEventListener } from '../audit/audit-event.listener';
 import { ReconciliationService, RECONCILIATION_EVENTS } from './reconciliation.service';
 import { ReconciliationEventListener } from './reconciliation-event.listener';
-import { AuditActorType, AdminRole, MismatchStatus, MismatchType, ReconciliationJobStatus } from '@prisma/client';
+import { AuditActorType, AdminRole, MismatchStatus, MismatchType, ReconciliationJobStatus } from '../../common/prisma-enums';
 
 // ─── Prisma Mock ─────────────────────────────────────────────────────────────
 

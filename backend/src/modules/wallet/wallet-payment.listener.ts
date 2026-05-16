@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Transaction } from '@prisma/client';
-import { LedgerCategory } from '@prisma/client';
+import { LedgerCategory } from '../../common/prisma-enums';
 import { WalletService } from './wallet.service';
 
 @Injectable()

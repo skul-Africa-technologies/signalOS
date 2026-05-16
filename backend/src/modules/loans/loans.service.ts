@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { DisbursementStatus, LedgerCategory } from '@prisma/client';
+import { DisbursementStatus, LedgerCategory } from '../../common/prisma-enums';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TrustScoreService } from '../trust-score/trust-score.service';
 import { WalletService } from '../wallet/wallet.service';
@@ -121,7 +121,7 @@ export class LoansService {
           category: LedgerCategory.LOAN_DISBURSEMENT,
           balanceBefore: w?.availableBalance ?? 0,
           balanceAfter: (w?.availableBalance ?? 0) + dto.amount,
-          metadata: { disbursementId: disbursement.id, dueDate },
+          metadata: JSON.stringify({ disbursementId: disbursement.id, dueDate }),
         },
       });
 

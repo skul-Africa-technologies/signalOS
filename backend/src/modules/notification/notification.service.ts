@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { NotificationChannel, NotificationStatus, NotificationType } from '@prisma/client';
+import { NotificationChannel, NotificationStatus, NotificationType } from '../../common/prisma-enums';
 import { PrismaService } from '../../prisma/prisma.service';
 import * as nodemailer from 'nodemailer';
 
@@ -42,7 +42,7 @@ export class NotificationService {
           title: input.title,
           message: input.message,
           channel,
-          metadata: input.metadata ?? {},
+          metadata: JSON.stringify(input.metadata ?? {}),
         },
       });
 
@@ -82,7 +82,7 @@ export class NotificationService {
   async getPreferences(userId: string) {
     return this.prisma.notificationPreference.upsert({
       where: { userId },
-      create: { userId },
+      create: { userId, mutedTypes: "[]" },
       update: {},
     });
   }
@@ -90,8 +90,8 @@ export class NotificationService {
   async updatePreferences(userId: string, data: { emailEnabled?: boolean; smsEnabled?: boolean; inAppEnabled?: boolean; mutedTypes?: string[] }) {
     return this.prisma.notificationPreference.upsert({
       where: { userId },
-      create: { userId, ...data },
-      update: data,
+      create: { userId, mutedTypes: JSON.stringify(data.mutedTypes ?? []), ...Object.fromEntries(Object.entries(data).filter(([k]) => k !== "mutedTypes")) },
+      update: { ...Object.fromEntries(Object.entries(data).filter(([k]) => k !== "mutedTypes")), ...(data.mutedTypes !== undefined ? { mutedTypes: JSON.stringify(data.mutedTypes) } : {}) },
     });
   }
 

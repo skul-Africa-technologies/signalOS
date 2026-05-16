@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { TransactionStatus } from '@prisma/client';
+import { TransactionStatus } from '../../common/prisma-enums';
 
 export interface EconomicSignals {
   trustScore: number;

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { AuditActorType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+
+export type AuditActorType = 'USER' | 'SYSTEM' | 'ADMIN' | 'EXTERNAL';
 
 export interface AuditEntry {
   actorType: AuditActorType;
@@ -33,7 +34,17 @@ export class AuditService {
 
   /** Append-only — never update or delete audit logs */
   log(entry: AuditEntry): void {
-    this.prisma.auditLog.create({ data: entry })
+    const data: any = {
+      actorType: entry.actorType,
+      actorId: entry.actorId,
+      action: entry.action,
+      entityType: entry.entityType,
+      entityId: entry.entityId,
+      metadata: entry.metadata ? JSON.stringify(entry.metadata) : undefined,
+      ipAddress: entry.ipAddress,
+      userAgent: entry.userAgent,
+    };
+    this.prisma.auditLog.create({ data })
       .catch((err) => this.logger.error('Audit log write failed', err));
   }
 

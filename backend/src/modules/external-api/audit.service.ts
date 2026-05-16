@@ -20,7 +20,7 @@ export class AuditService {
   /** Fire-and-forget immutable audit write */
   log(entry: AuditLogEntry): void {
     this.prisma.externalAccessAuditLog
-      .create({ data: entry })
+      .create({ data: { ...entry, scopesUsed: Array.isArray(entry.scopesUsed) ? entry.scopesUsed.join(",") : entry.scopesUsed } })
       .catch((err) => this.logger.error('Audit log write failed', err));
   }
 

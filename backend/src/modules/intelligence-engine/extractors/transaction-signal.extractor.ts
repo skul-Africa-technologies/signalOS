@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { Transaction, TransactionStatus, TransactionType } from '@prisma/client';
+import { TransactionStatus, TransactionType } from '../../../common/prisma-enums';
+import { Transaction } from '@prisma/client';
 
 export interface TransactionSignals {
   incomeStability: number;    // 0–100: regularity of inbound credits

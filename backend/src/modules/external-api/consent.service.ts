@@ -22,7 +22,7 @@ export class ConsentService {
       data: {
         userId: dto.userId,
         organizationId: dto.organizationId,
-        scopes: dto.scopes,
+        scopes: Array.isArray(dto.scopes) ? dto.scopes.join(",") : dto.scopes,
         purpose: dto.purpose,
         expiresAt,
       },

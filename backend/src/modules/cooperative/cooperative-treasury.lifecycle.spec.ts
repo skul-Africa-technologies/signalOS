@@ -11,7 +11,7 @@ import { GroupLedgerService } from '../cooperative/group-ledger.service';
 import { GroupWalletService } from '../cooperative/group-wallet.service';
 import { CooperativeTreasuryService } from '../cooperative/cooperative-treasury.service';
 import { GroupLoanService } from '../cooperative/group-loan.service';
-import { GroupLedgerCategory, GroupLoanStatus, LedgerDirection, LedgerEntryType, LedgerStatus } from '@prisma/client';
+import { GroupLedgerCategory, GroupLoanStatus, LedgerDirection, LedgerEntryType, LedgerStatus } from '../../common/prisma-enums';
 
 // ─── Shared mock factory ──────────────────────────────────────────────────────
 

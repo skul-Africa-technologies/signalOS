@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateOrganizationDto, IssueApiKeyDto } from './dto/organization.dto';
-import { OrgType, RateLimitTier } from '@prisma/client';
+import { OrgType, RateLimitTier } from '../../common/prisma-enums';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
 
@@ -22,7 +22,7 @@ export class OrganizationService {
         contactEmail: dto.contactEmail,
         webhookUrl: dto.webhookUrl,
         rateLimitTier: dto.rateLimitTier ?? RateLimitTier.FREE,
-        allowedScopes: dto.allowedScopes ?? DEFAULT_SCOPES,
+        allowedScopes: (Array.isArray(dto.allowedScopes ?? DEFAULT_SCOPES) ? (dto.allowedScopes ?? DEFAULT_SCOPES) : [dto.allowedScopes ?? DEFAULT_SCOPES]).join(","),
       },
     });
   }
@@ -32,9 +32,10 @@ export class OrganizationService {
     const plainKey = `sk_${crypto.randomBytes(32).toString('hex')}`;
     const keyHash = await bcrypt.hash(plainKey, 12);
     const scopes = dto.scopes ?? org.allowedScopes;
+    const scopesStr = Array.isArray(scopes) ? scopes.join(",") : scopes;
 
     const key = await this.prisma.apiKey.create({
-      data: { organizationId, keyHash, label: dto.label, scopes },
+      data: { organizationId, keyHash, label: dto.label, scopes: scopesStr },
     });
 
     return { plainKey, keyId: key.id };

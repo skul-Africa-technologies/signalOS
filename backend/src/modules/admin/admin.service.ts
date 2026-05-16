@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { DisbursementStatus, MismatchStatus, RepaymentScheduleStatus } from '@prisma/client';
+import { DisbursementStatus, MismatchStatus, RepaymentScheduleStatus } from '../../common/prisma-enums';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AdminLoginDto, CreateAdminDto, FreezeAccountDto } from './dto/admin.dto';
@@ -18,7 +18,7 @@ export class AdminService {
     if (existing) throw new ConflictException('Admin with this email already exists');
     const passwordHash = await bcrypt.hash(dto.password, 12);
     return this.prisma.adminUser.create({
-      data: { email: dto.email, passwordHash, role: dto.role, permissions: dto.permissions ?? [] },
+      data: { email: dto.email, passwordHash, role: dto.role, permissions: JSON.stringify(dto.permissions ?? []) },
       select: { id: true, email: true, role: true, permissions: true, active: true, createdAt: true },
     });
   }

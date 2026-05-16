@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Transaction, TransactionStatus } from '@prisma/client';
+import { TransactionStatus } from '../../../common/prisma-enums';
+import { Transaction } from '@prisma/client';
 
 export interface VolatilityReport {
   hasSpike: boolean;           // single transaction >> normal range

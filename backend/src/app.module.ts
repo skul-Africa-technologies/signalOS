@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { appConfig, databaseConfig, jwtConfig, squadConfig } from './config/configuration';
 import { envValidationSchema } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
@@ -28,6 +30,16 @@ import { ScheduledJobsModule } from './modules/scheduled-jobs/scheduled-jobs.mod
 import { AdminModule } from './modules/admin/admin.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { ReconciliationModule } from './modules/reconciliation/reconciliation.module';
+// Phase 4
+import { KycModule } from './modules/kyc/kyc.module';
+import { ObservabilityModule } from './modules/observability/observability.module';
+import { StorageModule } from './modules/storage/storage.module';
+import { QueueModule } from './modules/queue/queue.module';
+import { ComplianceModule } from './modules/compliance/compliance.module';
+// Phase 5
+import { PredictiveIntelligenceModule } from './modules/predictive-intelligence/predictive-intelligence.module';
+import { MetricsService } from './modules/observability/metrics.service';
+import { MetricsInterceptor } from './modules/observability/metrics.interceptor';
 
 @Module({
   imports: [
@@ -37,6 +49,11 @@ import { ReconciliationModule } from './modules/reconciliation/reconciliation.mo
       validationSchema: envValidationSchema,
       validationOptions: { abortEarly: true },
     }),
+    ThrottlerModule.forRoot([
+      { name: 'short', ttl: 1000, limit: 10 },
+      { name: 'medium', ttl: 60000, limit: 200 },
+      { name: 'long', ttl: 3600000, limit: 2000 },
+    ]),
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
     PrismaModule,
@@ -63,6 +80,19 @@ import { ReconciliationModule } from './modules/reconciliation/reconciliation.mo
     AdminModule,
     AuditModule,
     ReconciliationModule,
+    // Phase 4
+    KycModule,
+    ObservabilityModule,
+    StorageModule,
+    QueueModule,
+    ComplianceModule,
+    // Phase 5
+    PredictiveIntelligenceModule,
+  ],
+  providers: [
+    MetricsService,
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_INTERCEPTOR, useClass: MetricsInterceptor },
   ],
 })
 export class AppModule {}

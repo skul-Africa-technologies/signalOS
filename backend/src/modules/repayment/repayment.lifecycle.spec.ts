@@ -14,7 +14,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { RepaymentService, REPAYMENT_EVENTS } from './repayment.service';
 import { RepaymentInterval } from './dto/repayment.dto';
-import { DisbursementStatus, RepaymentScheduleStatus } from '@prisma/client';
+import { DisbursementStatus, RepaymentScheduleStatus } from '../../common/prisma-enums';
 
 // ─── Minimal Prisma mock ──────────────────────────────────────────────────────
 

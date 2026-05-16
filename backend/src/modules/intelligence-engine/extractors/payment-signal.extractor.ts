@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { Transaction, TransactionStatus } from '@prisma/client';
+import { TransactionStatus } from '../../../common/prisma-enums';
+import { Transaction } from '@prisma/client';
 
 export interface PaymentSignals {
   transactionFrequency: number;  // 0–100

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RepaymentService } from '../repayment/repayment.service';
@@ -7,7 +7,8 @@ import { TrustScoreService } from '../trust-score/trust-score.service';
 import { CooperativeTreasuryService } from '../cooperative/cooperative-treasury.service';
 import { IntelligenceEngineService } from '../intelligence-engine/intelligence-engine.service';
 import { NotificationService } from '../notification/notification.service';
-import { NotificationChannel, NotificationType, RepaymentScheduleStatus } from '@prisma/client';
+import { PredictiveIntelligenceService } from '../predictive-intelligence/predictive-intelligence.service';
+import { NotificationChannel, NotificationType, RepaymentScheduleStatus } from '../../common/prisma-enums';
 
 @Injectable()
 export class ScheduledJobsService {
@@ -20,10 +21,9 @@ export class ScheduledJobsService {
     private readonly treasury: CooperativeTreasuryService,
     private readonly intelligence: IntelligenceEngineService,
     private readonly notifications: NotificationService,
+    private readonly predictive: PredictiveIntelligenceService,
     private readonly events: EventEmitter2,
   ) {}
-
-  // ─── Daily Jobs (02:00 UTC) ─────────────────────────────────────────────────
 
   @Cron('0 2 * * *', { name: 'daily-overdue-scan' })
   async dailyOverdueScan() {
@@ -55,11 +55,9 @@ export class ScheduledJobsService {
       tomorrow.setDate(tomorrow.getDate() + 1);
       const dayAfter = new Date(tomorrow);
       dayAfter.setDate(dayAfter.getDate() + 1);
-
       const dueSoon = await this.prisma.loanRepaymentSchedule.findMany({
         where: { status: RepaymentScheduleStatus.PENDING, dueDate: { gte: tomorrow, lt: dayAfter } },
       });
-
       for (const schedule of dueSoon) {
         const loan = await this.prisma.loanDisbursement.findUnique({ where: { id: schedule.loanId } });
         if (!loan) continue;
@@ -67,7 +65,7 @@ export class ScheduledJobsService {
           userId: loan.userId,
           type: NotificationType.REPAYMENT_DUE,
           title: 'Repayment Due Tomorrow',
-          message: `Your loan installment of ₦${schedule.amountDue.toLocaleString()} is due tomorrow. Please ensure your wallet is funded.`,
+          message: `Your loan installment of ₦${schedule.amountDue.toLocaleString()} is due tomorrow.`,
           channels: [NotificationChannel.IN_APP, NotificationChannel.SMS],
         });
       }
@@ -81,14 +79,12 @@ export class ScheduledJobsService {
   async dailyTrustDecay() {
     this.logger.log('[CRON] Autonomous trust decay scan');
     try {
-      // Users with no activity in 30 days get trust recalculated (natural decay)
       const cutoff = new Date(Date.now() - 30 * 86400000);
       const inactive = await this.prisma.user.findMany({
         where: { transactions: { none: { createdAt: { gte: cutoff } } } },
         select: { id: true },
         take: 200,
       });
-
       for (const user of inactive) {
         await this.trustScore.recalculate(user.id);
       }
@@ -98,7 +94,37 @@ export class ScheduledJobsService {
     }
   }
 
-  // ─── Weekly Jobs (Monday 06:00 UTC) ────────────────────────────────────────
+  // ─── Phase 5: Daily Prediction Regeneration (01:00 UTC) ────────────────────
+
+  @Cron('0 1 * * *', { name: 'daily-prediction-regeneration' })
+  async dailyPredictionRegeneration() {
+    this.logger.log('[CRON] Daily prediction regeneration starting');
+    try {
+      const users = await this.prisma.user.findMany({ select: { id: true }, take: 500 });
+      const processed = await this.predictive.batchRegeneratePredictions(users.map((u) => u.id));
+      this.logger.log(`[CRON] Predictions regenerated for ${processed}/${users.length} users`);
+    } catch (err: any) {
+      this.logger.error(`[CRON] Prediction regeneration failed: ${err.message}`);
+    }
+  }
+
+  // ─── Phase 5: Daily Treasury Adaptation (01:30 UTC) ────────────────────────
+
+  @Cron('30 1 * * *', { name: 'daily-treasury-adaptation' })
+  async dailyTreasuryAdaptation() {
+    this.logger.log('[CRON] Daily autonomous treasury adaptation');
+    try {
+      const groups = await this.prisma.savingsGroup.findMany({ select: { id: true } });
+      for (const group of groups) {
+        try {
+          await this.predictive.runTreasuryAdaptation(group.id);
+        } catch { /* skip individual */ }
+      }
+      this.logger.log(`[CRON] Treasury adaptation complete for ${groups.length} groups`);
+    } catch (err: any) {
+      this.logger.error(`[CRON] Treasury adaptation failed: ${err.message}`);
+    }
+  }
 
   @Cron('0 6 * * 1', { name: 'weekly-intelligence-snapshots' })
   async weeklyIntelligenceSnapshots() {
@@ -107,10 +133,7 @@ export class ScheduledJobsService {
       const users = await this.prisma.user.findMany({ select: { id: true }, take: 500 });
       let processed = 0;
       for (const user of users) {
-        try {
-          await this.intelligence.analyseUser(user.id);
-          processed++;
-        } catch { /* skip individual failures */ }
+        try { await this.intelligence.analyseUser(user.id); processed++; } catch { /* skip */ }
       }
       this.logger.log(`[CRON] Weekly snapshots: ${processed}/${users.length} users processed`);
     } catch (err: any) {
@@ -129,7 +152,7 @@ export class ScheduledJobsService {
           if (health.sustainabilityScore < 40) {
             this.events.emit('treasury.health.changed', { groupId: group.id, health: 'WEAK', score: health.sustainabilityScore });
           }
-        } catch { /* skip individual failures */ }
+        } catch { /* skip */ }
       }
       this.logger.log(`[CRON] Treasury health evaluated for ${groups.length} groups`);
     } catch (err: any) {
@@ -141,11 +164,7 @@ export class ScheduledJobsService {
   async weeklySavingsReminders() {
     this.logger.log('[CRON] Weekly savings reminders');
     try {
-      const members = await this.prisma.groupMember.findMany({
-        select: { userId: true },
-        distinct: ['userId'],
-        take: 500,
-      });
+      const members = await this.prisma.groupMember.findMany({ select: { userId: true }, distinct: ['userId'], take: 500 });
       for (const m of members) {
         await this.notifications.send({
           userId: m.userId,
@@ -160,8 +179,6 @@ export class ScheduledJobsService {
       this.logger.error(`[CRON] Savings reminders failed: ${err.message}`);
     }
   }
-
-  // ─── Monthly Jobs (1st of month, 08:00 UTC) ─────────────────────────────────
 
   @Cron('0 8 1 * *', { name: 'monthly-analytics' })
   async monthlyAnalytics() {
@@ -183,7 +200,6 @@ export class ScheduledJobsService {
   async monthlyTrustEvolution() {
     this.logger.log('[CRON] Monthly autonomous trust evolution');
     try {
-      // Re-analyse all active users for trust evolution
       const activeUsers = await this.prisma.user.findMany({
         where: { transactions: { some: {} } },
         select: { id: true },
@@ -191,10 +207,7 @@ export class ScheduledJobsService {
       });
       let evolved = 0;
       for (const user of activeUsers) {
-        try {
-          await this.intelligence.analyseUser(user.id);
-          evolved++;
-        } catch { /* skip */ }
+        try { await this.intelligence.analyseUser(user.id); evolved++; } catch { /* skip */ }
       }
       this.logger.log(`[CRON] Monthly trust evolution: ${evolved} users re-analysed`);
     } catch (err: any) {

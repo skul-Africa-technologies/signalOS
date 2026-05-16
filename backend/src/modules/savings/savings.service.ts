@@ -7,7 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { GroupLedgerCategory, LedgerCategory } from '@prisma/client';
+import { GroupLedgerCategory, LedgerCategory } from '../../common/prisma-enums';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 import { GroupWalletService } from '../cooperative/group-wallet.service';
@@ -98,7 +98,7 @@ export class SavingsService {
           category: LedgerCategory.SAVINGS_CONTRIBUTION,
           balanceBefore: uw.availableBalance,
           balanceAfter: uw.availableBalance - dto.amount,
-          metadata: { groupId, contributionRef },
+          metadata: JSON.stringify({ groupId, contributionRef }),
         },
       });
 
@@ -130,7 +130,7 @@ export class SavingsService {
           balanceBefore: gw.availableBalance,
           balanceAfter: gw.availableBalance + available,
           memberId: userId,
-          metadata: { contributionRef },
+          metadata: JSON.stringify({ contributionRef }),
         },
       });
 

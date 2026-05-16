@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { GroupLedgerCategory, LedgerDirection, LedgerEntryType, LedgerStatus } from '@prisma/client';
+import { GroupLedgerCategory, LedgerDirection, LedgerEntryType, LedgerStatus } from '../../common/prisma-enums';
 import { PrismaService } from '../../prisma/prisma.service';
 
 export interface GroupLedgerInput {

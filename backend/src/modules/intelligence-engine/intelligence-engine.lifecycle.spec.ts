@@ -18,7 +18,8 @@ import { TransactionSignalExtractor } from './extractors/transaction-signal.extr
 import { ParticipationSignalExtractor } from './extractors/participation-signal.extractor';
 import { SignalExtractor } from './extractors/signal.extractor';
 import { EconomicSignals } from './interfaces/intelligence.interfaces';
-import { Transaction, TransactionStatus, TransactionType, Contribution, GroupMember } from '@prisma/client';
+import { TransactionStatus, TransactionType } from '../../common/prisma-enums';
+import { Transaction, Contribution, GroupMember } from '@prisma/client';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

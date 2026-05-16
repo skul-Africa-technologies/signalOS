@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEmail, IsEnum, IsOptional, IsString, IsArray, MinLength } from 'class-validator';
-import { AdminRole } from '@prisma/client';
+import { AdminRole } from '../../../common/prisma-enums';
 
 export class CreateAdminDto {
   @ApiProperty({ example: 'ops@signalos.io' })

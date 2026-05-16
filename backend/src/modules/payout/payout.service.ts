@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
-import { LedgerCategory, PayoutStatus, WithdrawalStatus } from '@prisma/client';
+import { LedgerCategory, PayoutStatus, WithdrawalStatus } from '../../common/prisma-enums';
 import axios, { AxiosInstance } from 'axios';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
@@ -78,7 +78,7 @@ export class PayoutService {
           category: LedgerCategory.WITHDRAWAL,
           balanceBefore: w.availableBalance,
           balanceAfter: w.availableBalance - dto.amount,
-          metadata: { withdrawalRef: reference },
+          metadata: JSON.stringify({ withdrawalRef: reference }),
         },
       });
 
@@ -186,7 +186,7 @@ export class PayoutService {
           category: LedgerCategory.REFUND,
           balanceBefore: wallet.availableBalance,
           balanceAfter: wallet.availableBalance + amount,
-          metadata: { reason, withdrawalId },
+          metadata: JSON.stringify({ reason, withdrawalId }),
         },
       });
 

@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 // ─── Core Identity ────────────────────────────────────────────────────────────
@@ -15,7 +14,7 @@ model User {
   phone        String       @unique
   name         String
   passwordHash String
-  businessType BusinessType @default(TRADER)
+  businessType String @default("TRADER")
   trustScore   Float        @default(0)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
@@ -32,17 +31,11 @@ model User {
   wallet              Wallet?
   refreshSessions     RefreshSession[]
   consentGrants       ConsentGrant[]
+  predictionSnapshots PredictionSnapshot[]
 
   @@map("users")
 }
 
-enum BusinessType {
-  TRADER
-  ARTISAN
-  FREELANCER
-  VENDOR
-  OTHER
-}
 
 // ─── Economic Identity ────────────────────────────────────────────────────────
 
@@ -106,7 +99,7 @@ model RiskAssessment {
   riskScore            Float
   volatilityDetected   Boolean  @default(false)
   inactivityDetected   Boolean  @default(false)
-  flags                Json     // string[]
+  flags                String  // string[]
   assessedAt           DateTime @default(now())
 
   profile EconomicProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
@@ -127,9 +120,9 @@ model IntelligenceSnapshot {
   confidenceLevel    String
   eligibleForLoan    Boolean  @default(false)
   eligibleAmount     Float    @default(0)
-  recommendations    Json     // string[]
-  signalSummary      Json     // EconomicSignals as JSON
-  scoreSummary       Json     // IntelligenceScores as JSON
+  recommendations    String  // string[]
+  signalSummary      String  // EconomicSignals as JSON
+  scoreSummary       String  // IntelligenceScores as JSON
   triggeredBy        String   @default("analysis")
   createdAt          DateTime @default(now())
 
@@ -150,10 +143,10 @@ model Transaction {
   squadReference  String?           @unique
   amount          Float
   currency        String            @default("NGN")
-  type            TransactionType
-  status          TransactionStatus @default(PENDING)
+  type            String
+  status          String @default("PENDING")
   channel         String?
-  metadata        Json?
+  metadata        String?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
@@ -165,18 +158,7 @@ model Transaction {
   @@map("transactions")
 }
 
-enum TransactionType {
-  CREDIT
-  DEBIT
-  TRANSFER
-  SAVINGS
-}
 
-enum TransactionStatus {
-  PENDING
-  SUCCESS
-  FAILED
-}
 
 // ─── Cooperative Savings ──────────────────────────────────────────────────────
 
@@ -265,15 +247,15 @@ model Wallet {
 model LedgerEntry {
   id            String          @id @default(cuid())
   walletId      String
-  type          LedgerEntryType
-  direction     LedgerDirection
+  type          String
+  direction     String
   amount        Float
   reference     String          @unique
-  category      LedgerCategory
-  status        LedgerStatus    @default(COMPLETED)
+  category      String
+  status        String    @default("COMPLETED")
   balanceBefore Float
   balanceAfter  Float
-  metadata      Json?
+  metadata      String?
   createdAt     DateTime        @default(now())
 
   wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
@@ -284,31 +266,9 @@ model LedgerEntry {
   @@map("ledger_entries")
 }
 
-enum LedgerEntryType {
-  CREDIT
-  DEBIT
-}
 
-enum LedgerDirection {
-  CREDIT
-  DEBIT
-}
 
-enum LedgerCategory {
-  PAYMENT_RECEIVED
-  SAVINGS_CONTRIBUTION
-  LOAN_DISBURSEMENT
-  WITHDRAWAL
-  REFUND
-  CASHBACK
-  INTERNAL_TRANSFER
-}
 
-enum LedgerStatus {
-  PENDING
-  COMPLETED
-  REVERSED
-}
 
 // ─── Payout / Withdrawal ──────────────────────────────────────────────────────
 
@@ -318,7 +278,7 @@ model Payout {
   userId        String
   amount        Float
   reference     String       @unique
-  status        PayoutStatus @default(PENDING)
+  status        String @default("PENDING")
   provider      String       @default("squad")
   providerRef   String?
   bankCode      String
@@ -326,7 +286,7 @@ model Payout {
   accountName   String
   narration     String?
   failureReason String?
-  metadata      Json?
+  metadata      String?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
@@ -338,13 +298,6 @@ model Payout {
   @@map("payouts")
 }
 
-enum PayoutStatus {
-  PENDING
-  PROCESSING
-  SUCCESS
-  FAILED
-  REVERSED
-}
 
 model Withdrawal {
   id            String           @id @default(cuid())
@@ -352,7 +305,7 @@ model Withdrawal {
   userId        String
   amount        Float
   reference     String           @unique
-  status        WithdrawalStatus @default(PENDING)
+  status        String @default("PENDING")
   bankCode      String
   accountNumber String
   accountName   String
@@ -368,12 +321,6 @@ model Withdrawal {
   @@map("withdrawals")
 }
 
-enum WithdrawalStatus {
-  PENDING
-  PROCESSING
-  COMPLETED
-  FAILED
-}
 
 // ─── Loan Disbursement ────────────────────────────────────────────────────────
 
@@ -383,12 +330,12 @@ model LoanDisbursement {
   walletId    String
   amount      Float
   reference   String             @unique
-  status      DisbursementStatus @default(PENDING)
+  status      String @default("PENDING")
   loanTermDays Int               @default(30)
   dueDate     DateTime?
   disbursedAt DateTime?
   repaidAt    DateTime?
-  metadata    Json?
+  metadata    String?
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
 
@@ -397,13 +344,6 @@ model LoanDisbursement {
   @@map("loan_disbursements")
 }
 
-enum DisbursementStatus {
-  PENDING
-  APPROVED
-  DISBURSED
-  REPAID
-  DEFAULTED
-}
 
 // ─── Auth Sessions ────────────────────────────────────────────────────────────
 
@@ -451,16 +391,16 @@ model SavingsGroupWallet {
 model GroupLedgerEntry {
   id             String              @id @default(cuid())
   groupWalletId  String
-  type           LedgerEntryType
-  direction      LedgerDirection
+  type           String
+  direction      String
   amount         Float
   reference      String              @unique
-  category       GroupLedgerCategory
-  status         LedgerStatus        @default(COMPLETED)
+  category       String
+  status         String        @default("COMPLETED")
   balanceBefore  Float
   balanceAfter   Float
   memberId       String?
-  metadata       Json?
+  metadata       String?
   createdAt      DateTime            @default(now())
 
   groupWallet SavingsGroupWallet @relation(fields: [groupWalletId], references: [id], onDelete: Cascade)
@@ -471,15 +411,6 @@ model GroupLedgerEntry {
   @@map("group_ledger_entries")
 }
 
-enum GroupLedgerCategory {
-  MEMBER_CONTRIBUTION
-  GROUP_LOAN_DISBURSEMENT
-  GROUP_LOAN_REPAYMENT
-  ROTATIONAL_PAYOUT
-  MEMBER_WITHDRAWAL
-  TREASURY_RESERVE
-  TREASURY_ADJUSTMENT
-}
 
 model GroupLoan {
   id             String          @id @default(cuid())
@@ -488,13 +419,13 @@ model GroupLoan {
   borrowerId     String
   amount         Float
   reference      String          @unique
-  status         GroupLoanStatus @default(PENDING)
+  status         String @default("PENDING")
   loanTermDays   Int             @default(30)
   dueDate        DateTime?
   disbursedAt    DateTime?
   repaidAt       DateTime?
   repaidAmount   Float           @default(0)
-  metadata       Json?
+  metadata       String?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
@@ -506,13 +437,6 @@ model GroupLoan {
   @@map("group_loans")
 }
 
-enum GroupLoanStatus {
-  PENDING
-  APPROVED
-  DISBURSED
-  REPAID
-  DEFAULTED
-}
 
 model GroupEconomicProfile {
   id                      String   @id @default(cuid())
@@ -553,12 +477,12 @@ model TreasurySnapshot {
 model Organization {
   id             String           @id @default(cuid())
   name           String
-  type           OrgType
+  type           String
   contactEmail   String           @unique
   webhookUrl     String?
   active         Boolean          @default(true)
-  allowedScopes  String[]
-  rateLimitTier  RateLimitTier    @default(FREE)
+  allowedScopes  String
+  rateLimitTier  String    @default("FREE")
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
 
@@ -571,31 +495,14 @@ model Organization {
   @@map("organizations")
 }
 
-enum OrgType {
-  BANK
-  FINTECH
-  MICROFINANCE
-  INSURER
-  EMPLOYER
-  NGO
-  MARKETPLACE
-  COOPERATIVE
-}
 
-enum RateLimitTier {
-  FREE
-  STARTER
-  GROWTH
-  BANK
-  ENTERPRISE
-}
 
 model ApiKey {
   id             String       @id @default(cuid())
   organizationId String
   keyHash        String       @unique
   label          String?
-  scopes         String[]
+  scopes         String
   active         Boolean      @default(true)
   lastUsedAt     DateTime?
   expiresAt      DateTime?
@@ -611,7 +518,7 @@ model ConsentGrant {
   id             String       @id @default(cuid())
   userId         String
   organizationId String
-  scopes         String[]
+  scopes         String
   purpose        String
   expiresAt      DateTime
   revoked        Boolean      @default(false)
@@ -630,7 +537,7 @@ model WebhookSubscription {
   id             String       @id @default(cuid())
   organizationId String
   url            String
-  events         String[]
+  events         String
   secret         String
   active         Boolean      @default(true)
   createdAt      DateTime     @default(now())
@@ -646,8 +553,8 @@ model WebhookDelivery {
   id               String              @id @default(cuid())
   subscriptionId   String
   event            String
-  payload          Json
-  status           WebhookDeliveryStatus @default(PENDING)
+  payload          String
+  status           String @default("PENDING")
   attempts         Int                 @default(0)
   lastAttemptAt    DateTime?
   nextRetryAt      DateTime?
@@ -662,19 +569,13 @@ model WebhookDelivery {
   @@map("webhook_deliveries")
 }
 
-enum WebhookDeliveryStatus {
-  PENDING
-  SUCCESS
-  FAILED
-  EXHAUSTED
-}
 
 model ExternalAccessAuditLog {
   id             String       @id @default(cuid())
   organizationId String
   endpoint       String
   userId         String?
-  scopesUsed     String[]
+  scopesUsed     String
   purpose        String?
   ipAddress      String?
   responseStatus Int
@@ -713,7 +614,7 @@ model LoanRepaymentSchedule {
   penaltyAmount      Float                  @default(0)
   dueDate            DateTime
   paidAt             DateTime?
-  status             RepaymentScheduleStatus @default(PENDING)
+  status             String @default("PENDING")
   createdAt          DateTime               @default(now())
   updatedAt          DateTime               @updatedAt
 
@@ -725,13 +626,6 @@ model LoanRepaymentSchedule {
   @@map("loan_repayment_schedules")
 }
 
-enum RepaymentScheduleStatus {
-  PENDING
-  PAID
-  OVERDUE
-  MISSED
-  PARTIAL
-}
 
 model LoanRepayment {
   id                   String   @id @default(cuid())
@@ -756,12 +650,12 @@ model LoanRepayment {
 model Notification {
   id        String             @id @default(cuid())
   userId    String
-  type      NotificationType
+  type      String
   title     String
   message   String
-  channel   NotificationChannel
-  status    NotificationStatus @default(PENDING)
-  metadata  Json?
+  channel   String
+  status    String @default("PENDING")
+  metadata  String?
   readAt    DateTime?
   createdAt DateTime           @default(now())
 
@@ -771,30 +665,8 @@ model Notification {
   @@map("notifications")
 }
 
-enum NotificationType {
-  PAYMENT_SUCCESS
-  LOAN_APPROVED
-  REPAYMENT_DUE
-  REPAYMENT_OVERDUE
-  TRUST_SCORE_CHANGED
-  WITHDRAWAL_SUCCESS
-  SAVINGS_REMINDER
-  FRAUD_ALERT
-  TREASURY_ALERT
-}
 
-enum NotificationChannel {
-  IN_APP
-  EMAIL
-  SMS
-}
 
-enum NotificationStatus {
-  PENDING
-  SENT
-  FAILED
-  READ
-}
 
 model NotificationPreference {
   id           String   @id @default(cuid())
@@ -802,7 +674,7 @@ model NotificationPreference {
   emailEnabled Boolean  @default(true)
   smsEnabled   Boolean  @default(true)
   inAppEnabled Boolean  @default(true)
-  mutedTypes   String[]
+  mutedTypes   String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -816,8 +688,8 @@ model AdminUser {
   id          String      @id @default(cuid())
   email       String      @unique
   passwordHash String
-  role        AdminRole   @default(SUPPORT_ADMIN)
-  permissions String[]
+  role        String   @default("SUPPORT_ADMIN")
+  permissions String
   active      Boolean     @default(true)
   lastLoginAt DateTime?
   createdAt   DateTime    @default(now())
@@ -826,25 +698,17 @@ model AdminUser {
   @@map("admin_users")
 }
 
-enum AdminRole {
-  SUPER_ADMIN
-  OPERATIONS_ADMIN
-  TREASURY_ADMIN
-  FRAUD_ANALYST
-  SUPPORT_ADMIN
-  AUDITOR
-}
 
 // ─── Audit Infrastructure ─────────────────────────────────────────────────────
 
 model AuditLog {
   id         String        @id @default(cuid())
-  actorType  AuditActorType
+  actorType  String
   actorId    String
   action     String
   entityType String?
   entityId   String?
-  metadata   Json?
+  metadata   String?
   ipAddress  String?
   userAgent  String?
   createdAt  DateTime      @default(now())
@@ -856,11 +720,75 @@ model AuditLog {
   @@map("audit_logs")
 }
 
-enum AuditActorType {
-  USER
-  ADMIN
-  ORGANIZATION
-  SYSTEM
+
+// ─── KYC & Identity Verification ─────────────────────────────────────────────
+
+model KycProfile {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  verificationLevel String   @default("NONE")
+  status           String    @default("PENDING")
+  bvnVerified      Boolean   @default(false)
+  ninVerified      Boolean   @default(false)
+  selfieVerified   Boolean   @default(false)
+  phoneVerified    Boolean   @default(false)
+  bankVerified     Boolean   @default(false)
+  addressVerified  Boolean   @default(false)
+  riskLevel        String    @default("HIGH")
+  bvnHash          String?
+  ninHash          String?
+  submittedAt      DateTime?
+  verifiedAt       DateTime?
+  rejectedAt       DateTime?
+  rejectionReason  String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  documents        KycDocument[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("kyc_profiles")
+}
+
+model KycDocument {
+  id           String    @id @default(cuid())
+  kycProfileId String
+  type         String
+  storageKey   String
+  status       String    @default("PENDING")
+  confidence   Float     @default(0)
+  metadata     String?
+  uploadedAt   DateTime  @default(now())
+  reviewedAt   DateTime?
+
+  profile      KycProfile @relation(fields: [kycProfileId], references: [id], onDelete: Cascade)
+
+  @@index([kycProfileId])
+  @@map("kyc_documents")
+}
+
+// ─── Phase 5 — Predictive Intelligence ───────────────────────────────────────
+
+model PredictionSnapshot {
+  id               String   @id @default(cuid())
+  userId           String
+  predictionType   String
+  predictedValue   Float
+  confidence       Float
+  predictionWindow Int      @default(30)
+  metadata         String
+  generatedAt      DateTime @default(now())
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([predictionType])
+  @@index([expiresAt])
+  @@index([generatedAt])
+  @@map("prediction_snapshots")
 }
 
 // ─── Reconciliation Infrastructure ───────────────────────────────────────────
@@ -870,7 +798,7 @@ model ReconciliationJob {
   provider         String
   startedAt        DateTime                @default(now())
   completedAt      DateTime?
-  status           ReconciliationJobStatus @default(RUNNING)
+  status           String @default("RUNNING")
   mismatchesFound  Int                     @default(0)
   resolvedCount    Int                     @default(0)
   createdAt        DateTime                @default(now())
@@ -882,21 +810,15 @@ model ReconciliationJob {
   @@map("reconciliation_jobs")
 }
 
-enum ReconciliationJobStatus {
-  RUNNING
-  COMPLETED
-  FAILED
-  PARTIAL
-}
 
 model ReconciliationMismatch {
   id                  String              @id @default(cuid())
   reconciliationJobId String
   reference           String
-  mismatchType        MismatchType
+  mismatchType        String
   internalValue       String?
   externalValue       String?
-  status              MismatchStatus      @default(OPEN)
+  status              String      @default("OPEN")
   resolutionNotes     String?
   createdAt           DateTime            @default(now())
 
@@ -907,17 +829,4 @@ model ReconciliationMismatch {
   @@map("reconciliation_mismatches")
 }
 
-enum MismatchType {
-  MISSING_TRANSACTION
-  DUPLICATE_TRANSACTION
-  AMOUNT_MISMATCH
-  STATUS_MISMATCH
-  LEDGER_INCONSISTENCY
-}
 
-enum MismatchStatus {
-  OPEN
-  RESOLVED
-  IGNORED
-  ESCALATED
-}

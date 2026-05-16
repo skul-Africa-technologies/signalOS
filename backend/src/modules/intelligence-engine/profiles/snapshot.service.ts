@@ -67,7 +67,7 @@ export class SnapshotService {
         riskScore: input.riskReport.riskScore,
         volatilityDetected: input.riskReport.volatilityDetected,
         inactivityDetected: input.riskReport.inactivityDetected,
-        flags: input.riskReport.flags,
+        flags: JSON.stringify(input.riskReport.flags),
       },
     });
   }
@@ -83,9 +83,9 @@ export class SnapshotService {
         confidenceLevel: input.trustReport.confidence,
         eligibleForLoan: input.loanEligible,
         eligibleAmount: input.eligibleAmount,
-        recommendations: input.recommendations,
-        signalSummary: input.signals as object,
-        scoreSummary: input.scores as object,
+        recommendations: JSON.stringify(input.recommendations),
+        signalSummary: JSON.stringify(input.signals),
+        scoreSummary: JSON.stringify(input.scores),
         triggeredBy: input.triggeredBy ?? 'analysis',
       },
     });

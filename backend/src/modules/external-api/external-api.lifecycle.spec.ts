@@ -20,7 +20,7 @@ import { ConsentService } from './consent.service';
 import { AuditService } from './audit.service';
 import { RateLimitService, TIER_LIMITS } from './rate-limit.service';
 import { WebhookService } from './webhook.service';
-import { OrgType, RateLimitTier } from '@prisma/client';
+import { OrgType, RateLimitTier } from '../../common/prisma-enums';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 

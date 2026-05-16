@@ -1,13 +1,8 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import {
-  MismatchStatus,
-  MismatchType,
-  ReconciliationJobStatus,
-  PayoutStatus,
-  LedgerEntryType,
-} from '@prisma/client';
+import { MismatchStatus, MismatchType, ReconciliationJobStatus, PayoutStatus, LedgerEntryType } from '../../common/prisma-enums';
+import {  } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
 export const RECONCILIATION_EVENTS = {

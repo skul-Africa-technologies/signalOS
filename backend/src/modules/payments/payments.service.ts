@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { TransactionStatus, TransactionType } from '@prisma/client';
+import { TransactionStatus, TransactionType } from '../../common/prisma-enums';
 import { SquadService } from './squad.service';
 import { TransactionsService } from '../transactions/transactions.service';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';

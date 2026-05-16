@@ -6,7 +6,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { LedgerCategory, LedgerDirection, LedgerEntryType } from '@prisma/client';
+import { LedgerCategory, LedgerDirection, LedgerEntryType } from '../../common/prisma-enums';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LedgerService } from '../ledger/ledger.service';
 
@@ -94,7 +94,7 @@ export class WalletService {
           category,
           balanceBefore,
           balanceAfter,
-          metadata: metadata ?? {},
+          metadata: JSON.stringify(metadata ?? {}),
         },
       });
 
@@ -142,7 +142,7 @@ export class WalletService {
           category,
           balanceBefore,
           balanceAfter,
-          metadata: metadata ?? {},
+          metadata: JSON.stringify(metadata ?? {}),
         },
       });
 

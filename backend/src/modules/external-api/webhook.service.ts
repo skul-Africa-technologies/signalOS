@@ -1,7 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateWebhookSubscriptionDto } from './dto/webhook.dto';
-import { WebhookDeliveryStatus } from '@prisma/client';
+import { WebhookDeliveryStatus } from '../../common/prisma-enums';
 import * as crypto from 'crypto';
 import axios from 'axios';
 
@@ -17,7 +17,7 @@ export class WebhookService {
   async subscribe(organizationId: string, dto: CreateWebhookSubscriptionDto) {
     const secret = crypto.randomBytes(32).toString('hex');
     return this.prisma.webhookSubscription.create({
-      data: { organizationId, url: dto.url, events: dto.events, secret },
+      data: { organizationId, url: dto.url, events: Array.isArray(dto.events) ? dto.events.join(",") : dto.events, secret },
       select: { id: true, url: true, events: true, active: true, createdAt: true },
     });
   }

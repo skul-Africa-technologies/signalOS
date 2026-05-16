@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { TransactionStatus, TransactionType, Prisma } from '@prisma/client';
+import { TransactionStatus, TransactionType } from '../../common/prisma-enums';
 
 @Injectable()
 export class TransactionsService {
@@ -13,7 +13,7 @@ export class TransactionsService {
     type: TransactionType;
     currency?: string;
     channel?: string;
-    metadata?: Prisma.InputJsonValue;
+    metadata?: string;
   }) {
     return this.prisma.transaction.create({ data });
   }
@@ -29,7 +29,7 @@ export class TransactionsService {
   updateStatus(
     id: string,
     status: TransactionStatus,
-    extra?: { squadReference?: string; metadata?: Prisma.InputJsonValue },
+    extra?: { squadReference?: string; metadata?: string },
   ) {
     return this.prisma.transaction.update({
       where: { id },

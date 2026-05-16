@@ -3,9 +3,9 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
-import { AdminRole } from '@prisma/client';
+import { AdminRole } from '../../../common/prisma-enums';
 
-const ROLE_PERMISSIONS: Record<AdminRole, string[]> = {
+const ROLE_PERMISSIONS: Record<string, string[]> = {
   SUPER_ADMIN: ['*'],
   OPERATIONS_ADMIN: ['users.read', 'users.freeze', 'wallets.read', 'loans.approve', 'treasury.manage'],
   TREASURY_ADMIN: ['treasury.manage', 'wallets.read', 'reconciliation.execute'],
