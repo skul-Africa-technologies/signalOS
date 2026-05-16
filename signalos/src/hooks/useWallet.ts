@@ -12,7 +12,7 @@
 
 
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '@/src/context/AuthContext'
 import { getWallet, getWalletBalance, getWalletLedger } from '@/src/api/wallet.service'
 import type { Wallet, WalletBalance, LedgerEntry, Transaction } from '@/types'
@@ -50,28 +50,19 @@ export function useWallet(): UseWalletReturn {
   const [ledger, setLedger] = useState<LedgerEntry[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
   const lastFetchKey = useRef<string>('')
 
-
-
-  // Derive loading state from initial mount + conditions
-  const isLoading = !isHydrated || !isAuthenticated
-
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     const fetchKey = `${isHydrated}-${isAuthenticated}`
-
-    // Skip if already fetched the same state
     if (fetchKey === lastFetchKey.current) return
     lastFetchKey.current = fetchKey
 
-    // Only fetch if authenticated and hydrated
-    if (!isHydrated || !isAuthenticated) {
-      return
-    }
+    if (!isHydrated || !isAuthenticated) return
 
     setError(null)
+    setLoading(true)
 
-    // Fetch in parallel for performance
     Promise.all([
       getWallet(),
       getWalletBalance(),
@@ -83,32 +74,34 @@ export function useWallet(): UseWalletReturn {
         setLedger(ledgerData)
         setTransactions(ledgerToTransactions(ledgerData))
       })
-
-
       .catch((err) => {
         const message = err instanceof Error ? err.message : 'Failed to load wallet data'
         setError(message)
         console.error('Wallet fetch error:', err)
       })
+      .finally(() => {
+        setLoading(false)
+      })
   }, [isHydrated, isAuthenticated])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
 
 
   const refetch = () => {
     lastFetchKey.current = ''
+    fetchData()
   }
-
-
 
   return {
     wallet,
     balance,
     ledger,
     transactions,
-    loading: isLoading,
+    loading,
     error,
     refetch,
   }
-
-  
 }

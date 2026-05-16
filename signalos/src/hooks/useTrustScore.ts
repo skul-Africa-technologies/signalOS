@@ -9,7 +9,7 @@
 
 /* eslint-disable react-hooks/set-state-in-effect */
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '@/src/context/AuthContext'
 import { getTrustScore, recalculateTrustScore } from '@/src/api/trust-score.service'
 import type { TrustScoreReport } from '@/types'
@@ -37,25 +37,19 @@ export function useTrustScore(): UseTrustScoreReturn {
     activityLevel: 0,
   })
   const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
   const lastFetchKey = useRef<string>('')
   const recalculateInProgress = useRef(false)
 
-  // Derive loading state
-  const isLoading = !isHydrated || !isAuthenticated
-
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     const fetchKey = `${isHydrated}-${isAuthenticated}`
-
-    // Skip if already fetched the same state
     if (fetchKey === lastFetchKey.current) return
     lastFetchKey.current = fetchKey
 
-    // Only fetch if authenticated and hydrated
-    if (!isHydrated || !isAuthenticated) {
-      return
-    }
+    if (!isHydrated || !isAuthenticated) return
 
     setError(null)
+    setLoading(true)
 
     getTrustScore()
       .then((data) => {
@@ -69,7 +63,14 @@ export function useTrustScore(): UseTrustScoreReturn {
         setError(message)
         console.error('Trust score fetch error:', err)
       })
+      .finally(() => {
+        setLoading(false)
+      })
   }, [isHydrated, isAuthenticated])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   const recalculate = async () => {
     if (recalculateInProgress.current) return
@@ -94,6 +95,7 @@ export function useTrustScore(): UseTrustScoreReturn {
 
   const refetch = () => {
     lastFetchKey.current = ''
+    fetchData()
   }
 
   return {
@@ -101,7 +103,7 @@ export function useTrustScore(): UseTrustScoreReturn {
     riskLevel,
     reasons,
     breakdown,
-    loading: isLoading,
+    loading,
     error,
     recalculate,
     refetch,

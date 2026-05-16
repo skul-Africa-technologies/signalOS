@@ -9,7 +9,7 @@
 
 /* eslint-disable react-hooks/set-state-in-effect */
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '@/src/context/AuthContext'
 import { getRecommendationSummary, getRecommendations } from '@/src/api/recommendation.service'
 import type { Recommendation, RecommendationSummary } from '@/types'
@@ -27,26 +27,19 @@ export function useRecommendations(): UseRecommendationsReturn {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
   const [summary, setSummary] = useState<RecommendationSummary | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
   const lastFetchKey = useRef<string>('')
 
-  // Derive loading state
-  const isLoading = !isHydrated || !isAuthenticated
-
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     const fetchKey = `${isHydrated}-${isAuthenticated}`
-
-    // Skip if already fetched the same state
     if (fetchKey === lastFetchKey.current) return
     lastFetchKey.current = fetchKey
 
-    // Only fetch if authenticated and hydrated
-    if (!isHydrated || !isAuthenticated) {
-      return
-    }
+    if (!isHydrated || !isAuthenticated) return
 
     setError(null)
+    setLoading(true)
 
-    // Fetch both in parallel
     Promise.all([
       getRecommendationSummary(),
       getRecommendations(),
@@ -60,16 +53,24 @@ export function useRecommendations(): UseRecommendationsReturn {
         setError(message)
         console.error('Recommendations fetch error:', err)
       })
+      .finally(() => {
+        setLoading(false)
+      })
   }, [isHydrated, isAuthenticated])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   const refetch = () => {
     lastFetchKey.current = ''
+    fetchData()
   }
 
   return {
     recommendations,
     summary,
-    loading: isLoading,
+    loading,
     error,
     refetch,
   }
